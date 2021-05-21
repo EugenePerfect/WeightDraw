@@ -1,17 +1,10 @@
-
-const nDayWidth = 2;
-const sDayStyle = 'blue'; 
-
-const nMonthWidth = 9;
-const sMonthStyle = 'rgba(255, 55, 55, 0.2)';
-
-const nWeekWidth = 6;
-const sWeekStyle = 'rgba(65, 65, 255, 0.3)';
-var nWeekDays = 7;
-
+// Константы времени. Менять нельзя!
 const hour_len_ms = 60 * 60 * 1000;
 const day_len_ms = 24 * hour_len_ms;
 
+Date.prototype.daysInMonth = function() {
+  return 33 - new Date(this.getFullYear(), this.getMonth(), 33).getDate();
+};
 
 function ZeroFill(n){
   if(n >= 10) return n;
@@ -220,6 +213,7 @@ function Scaler(v, v_min, v_max, scr_min, scr_max){
   return (v - v_min) * (scr_max - scr_min) / (v_max - v_min);
 }
 
+// Рисуем линию, сохраняя и восстанавливая выбранный цвет и ширину в контексте
 function line(ctx, w, x1, y1, x2, y2, s = false){
   var keep = ctx.lineWidth;
   var keeps = ctx.strokeStyle;
@@ -236,10 +230,14 @@ function line(ctx, w, x1, y1, x2, y2, s = false){
   ctx.lineWidth = keep;
 }
 
+// Рисуем горизонтальную линию, сохраняя и восстанавливая 
+// выбранный цвет и ширину в контексте
 function hline(ctx, w, x1, x2, y, s){
   line(ctx, w, x1, y, x2, y, s); 
 }
 
+// Рисуем верикальную линию, сохраняя и восстанавливая 
+// выбранный цвет и ширину в контексте
 function vline(ctx, w, x, y1, y2, s){
   line(ctx, w, x, y1, x, y2, s); 
 }
@@ -378,6 +376,9 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   }
 
   ctx.stroke();
+
+
+  // Рассчитываем точки для месяцев
 
   var aMonthX = new Array();
   var aMonthY = new Array();
@@ -594,6 +595,8 @@ function Update(){
   Draw(width, height, m, week, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
 }
+
+$("#mesh_selector")[0].value = nWeekDays;
 
 $("#size_selector").bind( "change", function(e) { Update(); });
 $("#mesh_selector").bind( "change", function(e) { Update(); });
