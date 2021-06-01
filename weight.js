@@ -1,23 +1,70 @@
-
-const nDayWidth = 2;
-const sDayStyle = 'blue'; 
-
-const nMonthWidth = 9;
-const sMonthStyle = 'rgba(255, 55, 55, 0.2)';
-
-const nWeekWidth = 6;
-const sWeekStyle = 'rgba(65, 65, 255, 0.3)';
-var nWeekDays = 7;
-
+// Константы времени. Менять нельзя!
 const hour_len_ms = 60 * 60 * 1000;
 const day_len_ms = 24 * hour_len_ms;
-
 
 function ZeroFill(n){
   if(n >= 10) return n;
 
   return "0" + n;
 }
+
+Date.prototype.daysInMonth = function() {
+  return 33 - new Date(this.getFullYear(), this.getMonth(), 33).getDate();
+};
+
+// проверяем, находится ли дата на расстоянии window или менее от date
+Date.prototype.dateInRange = function(date, window) {
+  var window_ms = window * day_len_ms;
+
+  if(this.getTime() > date.getTime() + window_ms) return false;
+  if(this.getTime() < date.getTime() - window_ms) return false;
+
+
+  return true;
+};
+
+// Делает из даты строку вид "01.21" 
+Date.prototype.MakeMonthString = function (){
+  return ZeroFill((this.getMonth() + 1).toString()) + "." + ZeroFill((this.getFullYear() - 2000).toString());
+}
+
+// Обратная функция: создать дату из строки обозначения месяца вида "01.21"
+function MakeMonthDate(s, day = 1){
+  var a = s.split('.');
+
+  var year = 2000 + parseInt(a[1], 10);
+  var month = parseInt(a[0], 10) - 1;
+
+  return new Date(year, month, day);
+}
+
+// проверяем, относятся ли даты к одному месяцу. 
+// Аргумент s может быть как датой, так и строкой вида "01.21" 
+Date.prototype.IsSameMonth = function (s){
+  var month = 0, year = 0;
+
+  if (typeof s == 'string'){
+    month = parseInt(s.split('.')[0], 10) - 1;
+    year = 2000 + parseInt(s.split('.')[1], 10);
+  }else{
+    month = s.getMonth();
+    year = s.getFullYear();
+  }
+
+  if(this.getMonth() == month && this.getFullYear() == year) return true;
+
+  return false;
+};
+
+// Возвращает строку названия месяца
+Date.prototype.GetMonthName = function (){
+  var names = [ 
+    "январь", "февраль", "март", "апрель", "май", "июнь", 
+    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" 
+  ];
+
+  return names[this.getMonth()];
+};
 
 // Замыкание
 (function() {
@@ -67,6 +114,39 @@ function ZeroFill(n){
     };
   }
 })();
+
+//CanvasRenderingContext2D
+
+// Рисуем линию, сохраняя и восстанавливая выбранный цвет и ширину в контексте
+function line(ctx, w, x1, y1, x2, y2, s = false) {
+  ctx.save();
+
+  ctx.lineWidth = w;
+  if(s) ctx.strokeStyle = s; 
+
+  ctx.beginPath();
+
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+
+  ctx.stroke();
+
+
+  ctx.restore();
+};
+
+// Рисуем горизонтальную линию, сохраняя и восстанавливая 
+// выбранный цвет и ширину в контексте
+function hline(ctx, w, x1, x2, y, s){
+  line(ctx, w, x1, y, x2, y, s); 
+}
+
+// Рисуем верикальную линию, сохраняя и восстанавливая 
+// выбранный цвет и ширину в контексте
+function vline(ctx, w, x, y1, y2, s){
+  line(ctx, w, x, y1, x, y2, s); 
+}
+
 
 var myDataSet = {
   weights : new Array(), 
@@ -220,108 +300,17 @@ function Scaler(v, v_min, v_max, scr_min, scr_max){
   return (v - v_min) * (scr_max - scr_min) / (v_max - v_min);
 }
 
-function line(ctx, w, x1, y1, x2, y2, s = false){
-  var keep = ctx.lineWidth;
-  var keeps = ctx.strokeStyle;
-
-  if(s) ctx.strokeStyle = s; 
-
-  ctx.beginPath();
-  ctx.lineWidth = w;
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-
-  ctx.strokeStyle = keeps;
-  ctx.lineWidth = keep;
-}
-
-function hline(ctx, w, x1, x2, y, s){
-  line(ctx, w, x1, y, x2, y, s); 
-}
-
-function vline(ctx, w, x, y1, y2, s){
-  line(ctx, w, x, y1, x, y2, s); 
-}
-
-function DrawRegular(ctx, x1, y1, x2, y2){
-  for(var x = 1; x < myDataSet.TotalDots(); x++){
-    var xprev = x1 + Scaler(x - 1, 0, myDataSet.TotalDots(), x1, x2);
-    var xcurr = x1 + Scaler(x, 0, myDataSet.TotalDots(), x1, x2);
-
-    var yprev = y2 - Scaler(myDataSet.Y(x-1), myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
-    var ycurr = y2 - Scaler(myDataSet.Y(x),   myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
-
-    line(ctx, 2, xprev, yprev, xcurr, ycurr);
-  }
-}
 
 function FindThis(element, index, array){
-  return (this == element); 
-}
-
-function MakeMonthString(d){
-  return ZeroFill((d.getMonth() + 1).toString()) + "." + ZeroFill((d.getFullYear() - 2000).toString());
-}
-
-function MakeMonthDate(s, day = 1){
-  var a = s.split('.');
-
-  var year = 2000 + parseInt(a[1], 10);
-  var month = parseInt(a[0], 10) - 1;
-
-  return new Date(year, month, day);
-}
-
-function GetMonthName(s){
-  var month = 0;
-
-  if (typeof s == 'string')
-    month = parseInt(s.split('.')[0], 10) - 1;
-  else
-    month = s.getMonth();
-
-  if(month < 0 || month > 11) return 'фигня';
-
-  var names = [ "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" ];
-
-  return names[month];
-}
-
-function IsSameMonth(s, d){
-  var month = 0, year = 0;
-
-  if (typeof s == 'string'){
-    month = parseInt(s.split('.')[0], 10) - 1;
-    year = 2000 + parseInt(s.split('.')[1], 10);
-  }else{
-    month = s.getMonth();
-    year = s.getFullYear();
-  }
-
-  if(d.getMonth() == month && d.getFullYear() == year) return true;
-
-  return false;
+  return (this == element.number); 
 }
 
 function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
+
   var xmin = myDataSet.X(0).getTime();
   var xmax = myDataSet.X(myDataSet.TotalDots()-1).getTime();
 
-  var aMonth = new Array();
-
-  for(var i = 0; i < myDataSet.TotalDots(); i++){
-    if(i == 51) 
-      console.log(myDataSet.X(i));
-
-    var Month = MakeMonthString(myDataSet.X(i));
-
-    var idx = aMonth.findIndex(FindThis, Month);
-    if(idx == -1) aMonth.push(Month);
-  }
-
-  console.log(aMonth);
-
+  // Сначала рисуем ломаную через все точки 
   for(var x = 1; x < myDataSet.TotalDots(); x++){
     var xprev = x1 + Scaler(myDataSet.X(x-1), xmin, xmax, x1, x2);
     var xcurr = x1 + Scaler(myDataSet.X(x),   xmin, xmax, x1, x2);
@@ -332,7 +321,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
     line(ctx, nDayWidth, xprev, yprev, xcurr, ycurr);
   }
 
-  // Weekly
+  // Теперь ломаную через точки с усреднением
   ctx.strokeStyle = sWeekStyle; 
   ctx.lineWidth = nWeekWidth;
   ctx.beginPath();
@@ -340,12 +329,9 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   var week_len_ms = mesh * day_len_ms;
   var week_start =  myDataSet.X(0).getTime();
 
-  var s = 0;
-  var n = 0;
+  var s = 0, n = 0;
 
-  var first = true;
-
-  for(var i7 = 0; i7 < myDataSet.TotalDots(); i7++){
+  for(var i7 = 0, first = true; i7 < myDataSet.TotalDots(); i7++){
 //    var ws_d = new Date(week_start);
 //    var we_d = new Date(week_start + week_len_ms);
 
@@ -379,82 +365,136 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
   ctx.stroke();
 
-  var aMonthX = new Array();
-  var aMonthY = new Array();
+  // Сначала строим список месяцев
+  var aMonth = new Array();
 
+  for(var i = 0; i < myDataSet.TotalDots(); i++){
+    var Month = myDataSet.X(i).MakeMonthString();
+
+    var idx = aMonth.findIndex(FindThis, Month);
+    if(idx == -1){ 
+      var firstday = MakeMonthDate(Month);
+      var length = firstday.daysInMonth();
+      var m = { 
+         number : Month, // Текстовая строка вида "01.21"  
+         name : firstday.GetMonthName(), // Название месяца словами
+         firstday: firstday, // Первый день месяца
+         length: length, // Дней в месяце
+         middle: MakeMonthDate(Month, Math.round10(length / 2)), // Середина месяца
+         X: 0, Y: 0,
+         startweight: 0
+      };
+      aMonth.push(m);
+    }
+  }
+
+  console.log(aMonth);
+
+  // Рассчитываем точки помесячно и рисуем шкалу по оси Х
   for(var m = 0; m < aMonth.length; m++){
-    var name = GetMonthName(aMonth[m]);
+    // насечки на каждом 5м дне
+    for(var day = 5; day <= aMonth[m].length; day += 5){
+      var fifth_x = x1 + Scaler(MakeMonthDate(aMonth[m].number, day), xmin, xmax, x1, x2);
 
-    for(var f = 1; f <= 6; f++){
-      var day = f * 5;
-
-      var fifth = x1 + Scaler(MakeMonthDate(aMonth[m], day), xmin, xmax, x1, x2);
-
-      if(m + 1 < aMonth.length){
-        var nextmonth = x1 + Scaler(MakeMonthDate(aMonth[m + 1]), xmin, xmax, x1, x2);
-        if(fifth >= nextmonth) continue;
-      }
-
-      if(fifth < x1) continue;
-      if(fifth > x2) break;
+      if(fifth_x < x1) continue;
+      if(fifth_x > x2) break;
 
       ctx.strokeStyle = 'black'; 
       ctx.font = '12px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      ctx.fillText(day, fifth, y2 + 10);
+      ctx.fillText(day, fifth_x, y2 + 10);
 
-      vline(ctx, 1, fifth, y2 - 2, y2 + 2);
+      vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
     }
 
+    // Считаем среднемесячные значение (по всем точкам за конкретный месяц)
     var s = 0, n = 0;
     for(var j = 0; j < myDataSet.TotalDots(); j++){
-      if(IsSameMonth(aMonth[m], myDataSet.X(j))){
+      if(myDataSet.X(j).IsSameMonth(aMonth[m].number)){
         n++;
         s += myDataSet.Y(j);
       }
     }
+
     var Y = s / n;
-    var X = x1 + Scaler(MakeMonthDate(aMonth[m], 15), xmin, xmax, x1, x2);
+    var X = x1 + Scaler(aMonth[m].middle, xmin, xmax, x1, x2);
     if(X < x1) X = x1;
     if(X > x2) X = x2;
 
-    aMonthY.push(y2 - Scaler(Y, myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2));
-    aMonthX.push(X);
+    aMonth[m].Y = y2 - Scaler(Y, myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
+    aMonth[m].X = X;
 
-    ctx.strokeStyle = 'gray'; 
-    ctx.font = '24px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    if(!m){
-      if(myDataSet.X(0).getDate() < 20){
-        var xl = x1;
-        var xr = x1 + Scaler(MakeMonthDate(aMonth[m + 1]), xmin, xmax, x1, x2);
-
-        ctx.fillText(name, (xr + xl) / 2, y1 + 10);
-      }  
-    }else{
-      if(m + 1 < aMonth.length || myDataSet.X(myDataSet.TotalDots() - 1).getDate() > 10){
-        var xl = x1 + Scaler(MakeMonthDate(aMonth[m]), xmin, xmax, x1, x2);
-        var xr = (m + 1 < aMonth.length) ? x1 + Scaler(MakeMonthDate(aMonth[m + 1]), xmin, xmax, x1, x2) : xr = x2;
-
-        ctx.fillText(name, (xr + xl) / 2, y1 + 10);
+    // Считаем среднее значение на начало месяца 
+    s = 0, n = 0;
+    for(var j = 0; j < myDataSet.TotalDots(); j++){
+      if(myDataSet.X(j).dateInRange(aMonth[m].firstday, nMonthStartCalculateWindow)){
+        n++;
+        s += myDataSet.Y(j);
       }
     }
 
-    if(m){
-      ctx.strokeStyle = 'gray'; 
-      var x = x1 + Scaler(MakeMonthDate(aMonth[m]), xmin, xmax, x1, x2);
-      vline(ctx, 1, x, y1, y2);
+    if(n) aMonth[m].startweight = s / n;
 
-      ctx.strokeStyle = sMonthStyle;
-      line(ctx, nMonthWidth, aMonthX[m - 1], aMonthY[m - 1], aMonthX[m], aMonthY[m]);
+    ctx.strokeStyle = 'gray'; 
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    if(!m){ // Для первого месяца пишем название только в случае, 
+            // если начало данных приходится на 15е число или ранее; 
+            // статистика за этот месяц не считается 
+      if(myDataSet.X(0).getDate() <= 20){
+        var xl = x1;
+        var xr = x1 + Scaler(aMonth[m + 1].firstday, xmin, xmax, x1, x2);
+
+        ctx.font = '24px serif';
+        ctx.fillText(aMonth[m].name, (xr + xl) / 2, y1 + 10);
+      }  
+    }else{ 
+      // Вывод статистики за месяц
+      if(m < aMonth.length && aMonth[m - 1].startweight){
+        // Различие: "потеря за месяц" = потеря за календарный месяц
+        var monthloss = Math.round10(aMonth[m].startweight - aMonth[m - 1].startweight, -1);
+        // "потеря за неделю" = считается из предыдущего показателя в пересчете на 7 дней
+        // в отличие от "потери ща месяц" - это сравнимые показатели, 
+        // т.к. влияние разной длины месяца нивелируется
+        var weekloss = Math.round10(monthloss * 7 / aMonth[m].length, -2);           
+
+        var xl = x1 + Scaler(aMonth[m - 1].firstday, xmin, xmax, x1, x2);
+        var xr = x1 + Scaler(aMonth[m].firstday, xmin, xmax, x1, x2);
+
+        var txt = monthloss + " кг/мес, " + weekloss + " кг/нед ";
+        ctx.font = '18px serif';
+        ctx.fillText(txt, (xr + xl) / 2, y1 + 40);
+      }
+
+      // Название пишем только для того случая, когда последняя точка это 11 число или далее
+      if(m + 1 < aMonth.length || myDataSet.X(myDataSet.TotalDots() - 1).getDate() > 10){
+        var xl = x1 + Scaler(aMonth[m].firstday, xmin, xmax, x1, x2);
+        var xr = (m + 1 < aMonth.length) ? x1 + Scaler(aMonth[m + 1].firstday, xmin, xmax, x1, x2) : xr = x2;
+
+        ctx.font = '24px serif';
+        ctx.fillText(aMonth[m].name, (xr + xl) / 2, y1 + 10);
+      }
+    }
+ 
+    if(m){
+      // Вертикальные линии "граница между месяцами", рисуются на 12:00 последнего дня предыдущего месяца
+      // Почему так? Если последняя точка - первое число, при рисовании разделителя на 00:00 первого числа
+      // не совсем очевидно, что последняя точка, которая в этом случае совпадает с линией, относится 
+      // уже к новому месяцу 
+      var x = x1 + Scaler(aMonth[m].firstday - day_len_ms / 2, xmin, xmax, x1, x2);
+      vline(ctx, 1, x, y1, y2, 'gray');
+
+      // Собственно линия по среднемесячным значениям
+      line(ctx, nMonthWidth, aMonth[m - 1].X, aMonth[m - 1].Y, aMonth[m].X, aMonth[m].Y, sMonthStyle);
     }
   }
 
-  // Обозначание воскресений 
+  console.log(aMonth);
+
+  // Обозначание воскресений. Тупо проходим по всем дням и отмечаем те, в которых день недели = 0 (вс) 
   if(show_weeks){
     ctx.strokeStyle = 'red'; 
     for(var sun = myDataSet.X(0).getTime(); sun <= myDataSet.X(myDataSet.TotalDots() - 1).getTime() + hour_len_ms; sun += day_len_ms){
@@ -465,6 +505,19 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
         vline(ctx, 0.5, sunpos, y2, y1 + 40);
       }
     }
+  }
+}
+
+// Простая отрисовка, все точки равномерно на графике без учета даты как координаты на оси Y
+function DrawRegular(ctx, x1, y1, x2, y2){
+  for(var x = 1; x < myDataSet.TotalDots(); x++){
+    var xprev = x1 + Scaler(x - 1, 0, myDataSet.TotalDots(), x1, x2);
+    var xcurr = x1 + Scaler(x, 0, myDataSet.TotalDots(), x1, x2);
+
+    var yprev = y2 - Scaler(myDataSet.Y(x-1), myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
+    var ycurr = y2 - Scaler(myDataSet.Y(x),   myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
+
+    line(ctx, 2, xprev, yprev, xcurr, ycurr);
   }
 }
 
@@ -583,17 +636,18 @@ function Update(){
 
   var a = s.split(' ');
 
-//  alert(a);
   var width = parseInt(a[0], 10); 
   var height = parseInt(a[2], 10); 
 
-//  alert(width);
-//  alert(height);
+  console.log("Update():", "a=", a, ", width=", width, ", height=", height);
+
   week = (week == 'отметить') ? true : false;
 
   Draw(width, height, m, week, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
 }
+
+$("#mesh_selector")[0].value = nWeekDays;
 
 $("#size_selector").bind( "change", function(e) { Update(); });
 $("#mesh_selector").bind( "change", function(e) { Update(); });
