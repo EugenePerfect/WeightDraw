@@ -321,6 +321,16 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
     line(ctx, nDayWidth, xprev, yprev, xcurr, ycurr);
   }
 
+  // Теперь сами точки, если необходимо, квадратиками
+  if(nDrawDots)
+    for(var x = 0; x < myDataSet.TotalDots(); x++){
+      var xc = x1 + Scaler(myDataSet.X(x), xmin, xmax, x1, x2);
+      var yc = y2 - Scaler(myDataSet.Y(x), myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
+
+      vline(ctx, nDayWidth, xc, yc - nDayWidth, yc + nDayWidth);
+    }
+
+
   // Теперь ломаную через точки с усреднением
   ctx.strokeStyle = sWeekStyle; 
   ctx.lineWidth = nWeekWidth;
