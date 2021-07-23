@@ -608,12 +608,16 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
 // Простая отрисовка, все точки равномерно на графике без учета даты как координаты на оси Y
 function DrawRegular(ctx, x1, y1, x2, y2){
-  for(var x = 1; x < myDataSet.TotalDots(); x++){
-    var xprev = x1 + Scaler(x - 1, 0, myDataSet.TotalDots(), x1, x2);
-    var xcurr = x1 + Scaler(x, 0, myDataSet.TotalDots(), x1, x2);
+  var XScaler = new CScaler(myDataSet.X(0).getTime(), myDataSet.LastX().getTime(), x1, x2);
+  var YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
 
-    var yprev = y2 - Scaler(myDataSet.Y(x-1), myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
-    var ycurr = y2 - Scaler(myDataSet.Y(x),   myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
+
+  for(var x = 1; x < myDataSet.TotalDots(); x++){
+    var xprev = XScaler.Transform(x - 1);
+    var xcurr = XScaler.Transform(x);
+
+    var yprev = YScaler.Transform(myDataSet.Y(x-1));
+    var ycurr = YScaler.Transform(myDataSet.Y(x));
 
     line(ctx, 2, xprev, yprev, xcurr, ycurr);
   }
