@@ -5,7 +5,8 @@ const day_len_ms = 24 * hour_len_ms;
 // Количество дней, которые учитываются в усреднении "старта" и "конца"
 const average_window_days = 5;
 
-var smooth = false;
+let smooth = false;
+let month_format = "январь";
 
 function ZeroFill(n){
   if(n >= 10) return n;
@@ -62,11 +63,26 @@ Date.prototype.IsSameMonth = function (s){
 };
 
 // Возвращает строку названия месяца
-Date.prototype.GetMonthName = function (){
+Date.prototype.GetMonthName = function (format){
   var names = [ 
     "январь", "февраль", "март", "апрель", "май", "июнь", 
     "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" 
   ];
+
+  var short_names = [ 
+    "янв", "фев", "мар", "апр", "май", "июн", 
+    "июл", "авг", "сен", "окт", "ноя", "дек" 
+  ];
+
+  if(format == "январь") return names[this.getMonth()];
+
+  if(format == "янв") return short_names[this.getMonth()];
+
+  if(format == "01") return ZeroFill(this.getMonth() + 1);
+     
+  if(format == "01/21") return ZeroFill(this.getMonth() + 1) + "/" + ZeroFill(this.getFullYear() - 2000);
+
+  if(format == "янв 21") return short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
 
   return names[this.getMonth()];
 };
@@ -710,7 +726,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       var length = firstday.daysInMonth();
       var m = { 
          number : Month, // Текстовая строка вида "01.21"  
-         name : firstday.GetMonthName(), // Название месяца словами
+         name : firstday.GetMonthName(month_format), // Название месяца словами
          firstday: firstday, // Первый день месяца
          length: length, // Дней в месяце
          middle: MakeMonthDate(Month, Math.round10(length / 2)), // Середина месяца
@@ -1023,6 +1039,8 @@ function Update(){
 
   smooth = ($("#smoothing_selector")[0].value == "да") ? true : false;
 
+  month_format = $("#monthlabels_selector")[0].value;
+
   Draw(width, height, m, week, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
 }
@@ -1033,5 +1051,6 @@ $("#size_selector").bind( "change", function(e) { Update(); });
 $("#mesh_selector").bind( "change", function(e) { Update(); });
 $("#weeksshow_selector").bind( "change", function(e) { Update(); });
 $("#smoothing_selector").bind( "change", function(e) { Update(); });
+$("#monthlabels_selector").bind( "change", function(e) { Update(); });
 
 Update();
