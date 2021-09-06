@@ -5,6 +5,8 @@ const day_len_ms = 24 * hour_len_ms;
 // Количество дней, которые учитываются в усреднении "старта" и "конца"
 const average_window_days = 5;
 
+var smooth = false;
+
 function ZeroFill(n){
   if(n >= 10) return n;
 
@@ -117,6 +119,213 @@ Date.prototype.GetMonthName = function (){
     };
   }
 })();
+
+
+Array.prototype.insert = function ( index, item ) {
+    return this.splice( index, 0, item );
+};
+
+// Реализацию сплайна Акимы я портировал из C-кода программы для debian aspline Дэвида Фрея.
+// Адрес (мертвая ссылка) http://homepage.hispeed.ch/david.frey/
+
+function AkimaSpline () {
+  var _calculated = false;
+  var _x = [];
+  var _y = [];
+
+  var _vx = [];
+  var _vy = [];
+
+  var _dx = [];
+  var _dy = [];
+
+  var _m = [];
+  var _t = [];
+
+  var _C = [];
+  var _D = [];
+
+  this.Dump = function(){
+    console.log("_calculated", _calculated);
+    console.log("_x", _x);
+    console.log("_y", _y);
+
+    if(_calculated){
+      console.log("_vx", _vx);
+      console.log("_vy", _vy);
+
+      console.log("_dx", _dx);
+      console.log("_dy", _dy);
+
+      console.log("_m", _m);
+      console.log("_t", _t);
+
+      console.log("_C", _C);
+      console.log("_D", _D);
+    }
+  };
+
+  this.IsOK = function() { return _x.length > 1 ? true : false; };
+
+  this.GetCount = function() { return _x.length; };
+
+  this.GetMinX = function() { return _x.length ? _x[0] : Number.POSITIVE_INFINITY ; };
+  this.GetMaxX = function() { return _x.length ? _x[_x.length - 1] : Number.POSITIVE_INFINITY ; };
+
+  this.Reset = function() { _x = []; _y = []; _dx = []; _dy = []; _vx = []; _vy = []; _s = []; _m = []; _t = []; _C = []; _D = []; _calculated = false; };
+
+  this.AddValue = function (x, y) {
+    if(_x.length)
+      for (var i = 0; i < _x.length; i++){
+        if(Math.abs(x - _x[i]) < Number.EPSILON){
+          console.log("AddValue (", x, y, "): абцисса уже есть в массиве, проигнорировано");
+          return false;
+        }
+    
+        if(x < _x[i]){
+          _x.insert(i, x);
+          _y.insert(i, y);
+          _calculated = false;
+          return true;
+        }
+      }
+
+    _x.push(x);
+    _y.push(y);
+    _calculated = false;
+    return true;
+  };
+
+  this.CalculateCoeffs = function (){
+    if(_calculated) return;
+
+    _vx = [];
+    _vy = [];
+
+    var n = _x.length + 4;
+    console.log("n = ", n);
+
+  /* Add leading and trailing extrapolation points, actual values will be filled in later */
+    _vx.push(0);
+    _vx.push(0);
+    _vx = _vx.concat(_x);
+    _vx.push(0);
+    _vx.push(0);
+
+    _vy.push(0);
+    _vy.push(0);
+    _vy = _vy.concat(_y);
+    _vy.push(0);
+    _vy.push(0);
+
+    _dx = Array(n);
+    _dy = Array(n);
+
+    _m = Array(n);
+    _t = Array(n);
+
+    _C = Array(n);
+    _D = Array(n);
+
+
+  /* a) Calculate the differences and the slopes m[i]. */
+
+    for(var i = 2; i < n - 3; i++) {
+      _dx[i] = _vx[i+1] - _vx[i]; 
+      _dy[i] = _vy[i+1] - _vy[i];
+      _m[i] = _dy[i] / _dx[i]; /* dx != 0, asserted by insertpoint() */
+    }
+
+  /* b) interpolate the missing points: */
+
+    _vx[1] = _vx[2] + _vx[3] - _vx[4];
+    _dx[1] = _vx[2] - _vx[1];
+
+    _vy[1] = _dx[1] * (_m[3] - 2*_m[2]) + _vy[2]; 
+    _dy[1] = _vy[2] - _vy[1];
+    _m[1] = _dy[1] / _dx[1];
+
+
+    _vx[0] = 2*_vx[2] - _vx[4];
+    _dx[0] = _vx[1] - _vx[0];
+
+    _vy[0] = _dx[0]*(_m[2] - 2*_m[1]) + _vy[1]; 
+    _dy[0] = _vy[1] - _vy[0];
+    _m[0] = _dy[0]/_dx[0];
+
+    _vx[n-2] = _vx[n-3] + _vx[n-4] - _vx[n-5];
+    _vy[n-2] = (2*_m[n-4] - _m[n-5]) * (_vx[n-2] - _vx[n-3]) + _vy[n-3];
+
+    // Ошибка и ее исправление:ниже используется _m[n-3] до его вычисления
+    _dx[n-3] = _vx[n-2] - _vx[n-3]; _dy[n-3] = _vy[n-2] - _vy[n-3];
+    _m[n-3] = _dy[n-3] / _dx[n-3];
+
+//    _m[n-3] = 0;
+    
+    _vx[n-1] = 2*_vx[n-3] - _vx[n-5];
+    _vy[n-1] = (2*_m[n-3] - _m[n-4])*(_vx[n-1] - _vx[n-2]) + _vy[n-2];
+
+    for (var i = n-3; i < n-1; i++) {
+      _dx[i] = _vx[i+1] - _vx[i]; _dy[i] = _vy[i+1] - _vy[i];
+      _m[i] = _dy[i] / _dx[i];
+    }
+
+    
+    _t[0]=0.0; _t[1]=0.0;  /* not relevant */
+    _t[n-1]=0.0; _t[n-2]=0.0;  /* not relevant - тоже не было в оригинале */
+
+    for (var i = 2; i < n - 2; i++) {
+      var num = Math.abs(_m[i+1] - _m[i]) * _m[i-1] + Math.abs(_m[i-1] - _m[i-2])*_m[i];
+      var den = Math.abs(_m[i+1] - _m[i]) + Math.abs(_m[i-1] - _m[i-2]);
+
+      if(den > Number.EPSILON) _t[i]= num/den; else _t[i]=0.0;
+    }
+
+    /* c) Allocate the polynom coefficients */
+
+    for (var i = 2; i < n-2; i++) {
+      _C[i] = (3*_m[i] - 2*_t[i] - _t[i+1])/_dx[i];
+      _D[i] = (_t[i] + _t[i+1] - 2*_m[i])/(_dx[i]*_dx[i]);
+    }
+
+    _calculated = true;
+
+  };
+
+  this.Approximate = function (cx){
+    if(this.GetCount() < 2) return Number.POSITIVE_INFINITY;
+
+    if(this.GetCount() == 2){
+      var dx = _x[1] - _x[0], dy = _y[1] - _y[0];
+
+      var m = dy / dx; /* dx != 0.0 asserted by insertpoint */
+
+      return _y[0] + m * (cx - _x[0]);
+    }
+
+    this.CalculateCoeffs();
+
+    // Возвратить "бесконечность", если вне интервала аппроксимации
+    if(cx < this.GetMinX() || cx > this.GetMaxX())
+      return Number.POSITIVE_INFINITY;
+
+    var p = 2;
+
+    for(; p < _vx.length - 2; p++){
+      if(Math.abs(cx - _vx[p]) < Number.EPSILON) /* strict match */
+        return _vy[p];
+
+      if(_vx[p] > cx) 
+        break;
+    }
+
+    var xd = (cx - _vx[p-1]);
+
+    return _vy[p-1] + (_t[p-1] + (_C[p-1] + _D[p-1]*xd)*xd)*xd;
+
+  };
+
+};
 
 //CanvasRenderingContext2D
 
@@ -364,6 +573,10 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   var XScaler = new CScaler(dmin, dmax, x1, x2);
   var YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
 
+  var akima = new AkimaSpline(), x1 = XScaler.Transform(dmin), x2 = XScaler.Transform(dmax);
+
+  akima.AddValue(x1, myDataSet.Y(0));
+
   // Сначала рисуем ломаную через все точки 
   for(var x = 1; x < myDataSet.TotalDots(); x++){
     var xprev = XScaler.Transform(myDataSet.X(x-1));
@@ -372,7 +585,21 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
     var yprev = YScaler.Transform(myDataSet.Y(x-1));
     var ycurr = YScaler.Transform(myDataSet.Y(x));
 
-    line(ctx, nDayWidth, xprev, yprev, xcurr, ycurr);
+    if(!smooth) line(ctx, nDayWidth, xprev, yprev, xcurr, ycurr);
+    else akima.AddValue(XScaler.Transform(myDataSet.X(x)), myDataSet.Y(x));
+  }
+
+  if(smooth){
+    ctx.save();
+    ctx.lineWidth = nDayWidth;
+    ctx.beginPath();
+
+    ctx.moveTo(x1, YScaler.Transform(akima.Approximate(x1)));
+    for(var xxx = x1; xxx <= x2; xxx++)
+      ctx.lineTo(xxx, YScaler.Transform(akima.Approximate(xxx)));
+
+    ctx.stroke();
+    ctx.restore();
   }
 
   // Теперь сами точки, если необходимо, квадратиками
@@ -403,6 +630,9 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
   var s = 0, n = 0;
 
+  akima.Reset();
+  x1 = 0; x2 = 0;
+
   for(var i7 = 0, first = true; i7 < myDataSet.TotalDots(); i7++){
 //    var ws_d = new Date(week_start);
 //    var we_d = new Date(week_start + week_len_ms);
@@ -423,16 +653,27 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       var x = XScaler.Transform(X);
       var y = YScaler.Transform(Y);
 
+      akima.AddValue(x, Y);
+      x2 = x;
+
       if(first){
         first = false;
-        ctx.moveTo(x, y);
-      }else
-        ctx.lineTo(x, y);
+        if(!smooth) ctx.moveTo(x, y);
+        x1 = x;
+      }else{
+        if(!smooth) ctx.lineTo(x, y);
+      }
 
     }
 
     s += myDataSet.Y(i7);
     n++; 
+  }
+
+  if(smooth){
+    ctx.moveTo(x1, YScaler.Transform(akima.Approximate(x1)));
+    for(var xxx = x1; xxx <= x2; xxx++)
+      ctx.lineTo(xxx, YScaler.Transform(akima.Approximate(xxx)));
   }
 
   ctx.stroke();
@@ -462,6 +703,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
   console.log(aMonth);
 
+  akima.Reset();
 
   // Рассчитываем точки помесячно и рисуем шкалу по оси Х
   for(var m = 0; m < aMonth.length; m++){
@@ -586,9 +828,30 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       vline(ctx, 1, x, y1, y2, 'gray');
 
       // Собственно линия по среднемесячным значениям
-      line(ctx, nMonthWidth, aMonth[m - 1].X, aMonth[m - 1].Y, aMonth[m].X, aMonth[m].Y, sMonthStyle);
+      if(!smooth) line(ctx, nMonthWidth, aMonth[m - 1].X, aMonth[m - 1].Y, aMonth[m].X, aMonth[m].Y, sMonthStyle);
     }
   }
+
+  if(smooth){
+    for(var m = 0; m < aMonth.length; m++)
+      akima.AddValue(aMonth[m].X, aMonth[m].Y);
+
+    x1 = aMonth[0].X; x2 = aMonth[aMonth.length - 1].X;
+
+    ctx.save();
+    ctx.lineWidth = nMonthWidth;
+    ctx.strokeStyle = sMonthStyle;
+
+    ctx.beginPath();
+
+    ctx.moveTo(x1, akima.Approximate(x1));
+    for(var xxx = x1; xxx <= x2; xxx++)
+      ctx.lineTo(xxx, akima.Approximate(xxx));
+    ctx.stroke();
+
+    ctx.restore();
+  }
+  
 
   console.log(aMonth);
 
@@ -744,6 +1007,8 @@ function Update(){
 
   week = (week == 'отметить') ? true : false;
 
+  smooth = ($("#smoothing_selector")[0].value == "да") ? true : false;
+
   Draw(width, height, m, week, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
 }
@@ -753,5 +1018,6 @@ $("#mesh_selector")[0].value = nWeekDays;
 $("#size_selector").bind( "change", function(e) { Update(); });
 $("#mesh_selector").bind( "change", function(e) { Update(); });
 $("#weeksshow_selector").bind( "change", function(e) { Update(); });
+$("#smoothing_selector").bind( "change", function(e) { Update(); });
 
 Update();
