@@ -146,6 +146,8 @@ function AkimaSpline () {
   var _D = [];
 
   this.Dump = function(){
+    console.log("AkimaSpline():IsOK()", this.IsOK());
+    console.log("AkimaSpline():GetCount()", this.GetCount());
     console.log("_calculated", _calculated);
     console.log("_x", _x);
     console.log("_y", _y);
@@ -171,6 +173,20 @@ function AkimaSpline () {
 
   this.GetMinX = function() { return _x.length ? _x[0] : Number.POSITIVE_INFINITY ; };
   this.GetMaxX = function() { return _x.length ? _x[_x.length - 1] : Number.POSITIVE_INFINITY ; };
+
+  this.GetX = function(i) { 
+    if(i >= _x.length) return Number.POSITIVE_INFINITY;
+    if(i < 0) return Number.NEGATIVE_INFINITY;
+
+    return _x[i];
+  };
+
+  this.GetY = function(i) { 
+    if(i >= _y.length) return Number.POSITIVE_INFINITY;
+    if(i < 0) return Number.NEGATIVE_INFINITY;
+
+    return _y[i];
+  };
 
   this.Reset = function() { _x = []; _y = []; _dx = []; _dy = []; _vx = []; _vy = []; _s = []; _m = []; _t = []; _C = []; _D = []; _calculated = false; };
 
@@ -342,7 +358,6 @@ function line(ctx, w, x1, y1, x2, y2, s = false) {
   ctx.lineTo(x2, y2);
 
   ctx.stroke();
-
 
   ctx.restore();
 };
@@ -546,11 +561,9 @@ class CScaler {
   }
 }
 
-
 function FindThis(element, index, array){
   return (this == element.number); 
 }
-
 
 function DrawStatistics(ctx, y1, XScaler, day1, day2, monthloss, weekloss, color = 'black'){
   var xl = XScaler.Transform(day1);
@@ -565,42 +578,76 @@ function DrawStatistics(ctx, y1, XScaler, day1, day2, monthloss, weekloss, color
   ctx.fillText(txt2, (xr + xl) / 2, y1 + 56);
 }
 
-function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
+function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, StrokeStyle){
+  let keepwidth = ctx.lineWidth;
+  ctx.lineWidth = nWidth;
 
-  var dmin = myDataSet.X(0).getTime();
+  let keepstyle = ctx.strokeStyle;
+  if(typeof StrokeStyle !== 'undefined') ctx.strokeStyle = StrokeStyle;
+
+  console.log("DrawGraph(): spline.GetCount() = ", spline.GetCount());
+  console.log("DrawGraph(): spline.GetMinX() = ", spline.GetMinX());
+
+  ctx.beginPath();
+
+  if(smooth){
+    let xt1 = spline.GetMinX(); // Время
+    let xt2 = spline.GetMaxX();
+
+    let x1 = XScaler.Transform(xt1); // Пиксели
+    let x2 = XScaler.Transform(xt2);
+
+    let last = spline.GetCount() - 1;
+
+    let delta = (xt2 - xt1)/(2 * (x2 - x1));
+
+    console.log("delta = ", delta);
+    console.log("xt1 + delta = ", xt1 + delta);
+
+    ctx.moveTo(x1, YScaler.Transform(spline.GetY(0)));
+
+    for(let xxx = xt1 + delta; xxx < xt2; xxx += delta)
+      ctx.lineTo(XScaler.Transform(xxx), YScaler.Transform(spline.Approximate(xxx)));
+
+    ctx.lineTo(XScaler.Transform(spline.GetX(last)), YScaler.Transform(spline.GetY(last)));
+
+  }else{
+    for(let i = 0; i < spline.GetCount(); i++){
+      let x = XScaler.Transform(spline.GetX(i)); // pixels
+      let y = YScaler.Transform(spline.GetY(i));
+
+      if(i)
+        ctx.lineTo(x, y);
+      else
+        ctx.moveTo(x, y);
+    }
+  }
+
+  ctx.stroke();
+
+  ctx.lineWidth = keepwidth;
+  ctx.strokeStyle = keepstyle;
+}
+
+function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
+  if(myDataSet.TotalDots() < 2){
+    alert("Нечего рисовать. Нужно минимум две точки.");
+    return;
+  }
+
+  var dmin = myDataSet.X(0).getTime();   
   var dmax = myDataSet.LastX().getTime();
 
   var XScaler = new CScaler(dmin, dmax, x1, x2);
   var YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
 
-  var akima = new AkimaSpline(), x1 = XScaler.Transform(dmin), x2 = XScaler.Transform(dmax);
-
-  akima.AddValue(x1, myDataSet.Y(0));
+  var spline = new AkimaSpline();
 
   // Сначала рисуем ломаную через все точки 
-  for(var x = 1; x < myDataSet.TotalDots(); x++){
-    var xprev = XScaler.Transform(myDataSet.X(x-1));
-    var xcurr = XScaler.Transform(myDataSet.X(x));
+  for(var x = 0; x < myDataSet.TotalDots(); x++)
+    spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
 
-    var yprev = YScaler.Transform(myDataSet.Y(x-1));
-    var ycurr = YScaler.Transform(myDataSet.Y(x));
-
-    if(!smooth) line(ctx, nDayWidth, xprev, yprev, xcurr, ycurr);
-    else akima.AddValue(XScaler.Transform(myDataSet.X(x)), myDataSet.Y(x));
-  }
-
-  if(smooth){
-    ctx.save();
-    ctx.lineWidth = nDayWidth;
-    ctx.beginPath();
-
-    ctx.moveTo(x1, YScaler.Transform(akima.Approximate(x1)));
-    for(var xxx = x1; xxx <= x2; xxx++)
-      ctx.lineTo(xxx, YScaler.Transform(akima.Approximate(xxx)));
-
-    ctx.stroke();
-    ctx.restore();
-  }
+  DrawGraph(ctx, spline, XScaler, YScaler, smooth, nDayWidth);
 
   // Теперь сами точки, если необходимо, квадратиками
   if(nDrawDots){
@@ -616,67 +663,40 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       else if(myDataSet.Y(x) == myDataSet.GetMax())
         vline(ctx, nExtremumWidth * 2, xc, yc - nExtremumWidth, yc + nExtremumWidth, 'red');
       else 
-        vline(ctx, nDayWidth, xc, yc - nDayWidth, yc + nDayWidth);
+        vline(ctx, nDayWidth * 1.5, xc, yc - nDayWidth, yc + nDayWidth);
     }
   }
 
-  // Теперь ломаную через точки с усреднением
-  ctx.strokeStyle = sWeekStyle; 
-  ctx.lineWidth = nWeekWidth;
-  ctx.beginPath();
+  // Теперь ломаную через точки с усреднением, если задано
+  if(mesh){
+    spline.Reset();
 
-  var week_len_ms = mesh * day_len_ms;
-  var week_start =  myDataSet.X(0).getTime();
+    const week_len_ms = mesh * day_len_ms;
+    let week_start = dmin;
 
-  var s = 0, n = 0;
+    let s = 0, n = 0;
 
-  akima.Reset();
-  x1 = 0; x2 = 0;
-
-  for(var i7 = 0, first = true; i7 < myDataSet.TotalDots(); i7++){
-//    var ws_d = new Date(week_start);
-//    var we_d = new Date(week_start + week_len_ms);
-
-//    console.log(ws_d.toDateString(), we_d.toDateString(), myDataSet.X(i7).toDateString());
-//    console.log(ws_d, we_d, myDataSet.X(i7));
+    for(let i7 = 0; i7 < myDataSet.TotalDots(); i7++){
 
     // +1 час = компенсация за перевод часов на летнее время
-    if(myDataSet.X(i7).getTime() + hour_len_ms >= week_start + week_len_ms){
+      if(myDataSet.X(i7).getTime() + hour_len_ms >= week_start + week_len_ms){
 //      console.log("точка", ws_d.toDateString());
-      var Y = s / n;
-      var X = week_start + week_len_ms / 2;
+        var Y = s / n;
+        var X = week_start + week_len_ms / 2;
 
-      s = 0;
-      n = 0;
-      week_start += week_len_ms;
+        s = 0;
+        n = 0;
+        week_start += week_len_ms;
 
-      var x = XScaler.Transform(X);
-      var y = YScaler.Transform(Y);
-
-      akima.AddValue(x, Y);
-      x2 = x;
-
-      if(first){
-        first = false;
-        if(!smooth) ctx.moveTo(x, y);
-        x1 = x;
-      }else{
-        if(!smooth) ctx.lineTo(x, y);
+        spline.AddValue(X, Y);
       }
 
+      s += myDataSet.Y(i7);
+      n++; 
     }
 
-    s += myDataSet.Y(i7);
-    n++; 
+    DrawGraph(ctx, spline, XScaler, YScaler, smooth, nWeekWidth, sWeekStyle);
   }
-
-  if(smooth){
-    ctx.moveTo(x1, YScaler.Transform(akima.Approximate(x1)));
-    for(var xxx = x1; xxx <= x2; xxx++)
-      ctx.lineTo(xxx, YScaler.Transform(akima.Approximate(xxx)));
-  }
-
-  ctx.stroke();
 
   // Сначала строим список месяцев
   var aMonth = new Array();
@@ -702,8 +722,6 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   }
 
   console.log(aMonth);
-
-  akima.Reset();
 
   // Рассчитываем точки помесячно и рисуем шкалу по оси Х
   for(var m = 0; m < aMonth.length; m++){
@@ -735,12 +753,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
     var Y = s / n;
 
-    var X = XScaler.Transform(aMonth[m].middle);
-    if(X < x1) X = x1;
-    if(X > x2) X = x2;
+    let X = XScaler.Transform(aMonth[m].middle); // координаты середины месяца
+    let Xt = aMonth[m].middle.getTime(); // время экранной середины месяца
+
+    if(X < x1){ X = x1; Xt = dmin; } 
+    if(X > x2){ X = x2; Xt = dmax; } 
 
     aMonth[m].Y = YScaler.Transform(Y);
     aMonth[m].X = X;
+
+    // Для сплайна - в исходном диапазоне значений абцис и ординат  
+    aMonth[m].Yv = Y;
+    aMonth[m].Xv = Xt;
 
     // Считаем среднее значение на начало месяца 
     s = 0, n = 0;
@@ -826,32 +850,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       // уже к новому месяцу 
       var x = XScaler.Transform(aMonth[m].firstday - day_len_ms / 2);
       vline(ctx, 1, x, y1, y2, 'gray');
-
-      // Собственно линия по среднемесячным значениям
-      if(!smooth) line(ctx, nMonthWidth, aMonth[m - 1].X, aMonth[m - 1].Y, aMonth[m].X, aMonth[m].Y, sMonthStyle);
     }
   }
 
-  if(smooth){
-    for(var m = 0; m < aMonth.length; m++)
-      akima.AddValue(aMonth[m].X, aMonth[m].Y);
+  // Линия по среднемесячным 
+  spline.Reset();
 
-    x1 = aMonth[0].X; x2 = aMonth[aMonth.length - 1].X;
+  for(var m = 0; m < aMonth.length; m++)
+    spline.AddValue(aMonth[m].Xv, aMonth[m].Yv);
 
-    ctx.save();
-    ctx.lineWidth = nMonthWidth;
-    ctx.strokeStyle = sMonthStyle;
+  DrawGraph(ctx, spline, XScaler, YScaler, smooth, nMonthWidth, sMonthStyle);
 
-    ctx.beginPath();
-
-    ctx.moveTo(x1, akima.Approximate(x1));
-    for(var xxx = x1; xxx <= x2; xxx++)
-      ctx.lineTo(xxx, akima.Approximate(xxx));
-    ctx.stroke();
-
-    ctx.restore();
-  }
-  
+//  spline.Dump();
 
   console.log(aMonth);
 
@@ -994,16 +1004,20 @@ function Draw(w, h, m, week, method, id){
 }
 
 function Update(){
-  var s = $("#size_selector")[0].value;
+
+  var size_raw = $("#size_selector")[0].value;
+
   var m = $("#mesh_selector")[0].value;
+  if(m == 'нет') m = 0;
+
   var week = $("#weeksshow_selector")[0].value;
 
-  var a = s.split(' ');
+  var size_raw = size_raw.split(' ');
 
-  var width = parseInt(a[0], 10); 
-  var height = parseInt(a[2], 10); 
+  var width = parseInt(size_raw[0], 10); 
+  var height = parseInt(size_raw[2], 10); 
 
-  console.log("Update():", "a=", a, ", width=", width, ", height=", height);
+  console.log("Update():", "size_raw = ", size_raw, ", width=", width, ", height=", height);
 
   week = (week == 'отметить') ? true : false;
 
