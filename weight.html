@@ -1,13 +1,21 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="uk">
   <head>
   	<meta charset="utf-8">
-  	<title>Мой вес</title>
+  	<title>Моя вага</title>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
 
-  <p>Разрешение: 
+  <div class="vcentered"><img src="ukraine_64.png" class="flag vcentered currentflag" title="Українська" alt="Українська">&nbsp; 
+     <a href="weight.en.html"><img src="united_kingdom_64.png" class="flag vcentered" title="English" alt="English"></a>&nbsp; 
+     <a href="weight.ru.html"><img src="russia_64.png" class="flag vcentered" title="Русский" alt="Русский"></a>
+
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+
+    Розмір графіка: 
     <select id="size_selector">
+      <option>640 x 360</option>
       <option>640 x 480</option>
       <option>800 x 600</option>
       <option selected>1024 x 768</option>
@@ -24,8 +32,8 @@
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    Усреднение: <select id="mesh_selector">
-      <option>нет</option>
+    Усереднення: <select id="mesh_selector">
+      <option>немає</option>
       <option>3</option>
       <option>5</option>
       <option selected>7</option>
@@ -34,28 +42,31 @@
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
-
-    Воскресенья: <select id="weeksshow_selector">
-      <option>отметить</option>
-      <option selected>не отмечать</option>
+    Згладжування: <select id="smoothing_selector">
+      <option selected>немає</option>
+      <option>Сплайн Akima</option>
+<!--      <option>Кубический сплайн</option> -->
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
 
-    Сглаживание: <select id="smoothing_selector">
-      <option selected>да</option>
-      <option>нет</option>
-    </select>
-
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-
-    Метки: <select id="monthlabels_selector">
-      <option>январь</option>
-      <option selected>янв</option>
-      <option>янв 21</option>
+    Мітки місяців: <select id="monthlabels_selector">
+      <option>січень</option>
+      <option selected>січ</option>
+      <option>січ 21</option>
       <option>01/21</option>
       <option>01</option>
     </select>
+  </div>
+
+  <p> 
+    Малювати: <label>неділі <input type="checkbox" id="showsundays_selector" ></label>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <label>точки мін. та макс. ваги<input type="checkbox" id="showminmaxdots_selector" checked></label>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <label>лінії мін. ти макс. ваги <input type="checkbox" id="showminmaxlines_selector" checked></label>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <label>графік по средньомісячним точкам <input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>
 
   <canvas id="canvas2"></canvas><br>
@@ -63,8 +74,13 @@
   <canvas id="canvas3"></canvas><br>
 
   <script src='jquery.js'></script>
+
   <script src='data.js'></script>
+
+  <script src='ukrainian.js'></script>
+
   <script src='config.js'></script>
+  <script src='spline.js'></script>
   <script src='weight.js'></script>
 
   </body>
