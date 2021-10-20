@@ -1,0 +1,13 @@
+.flag {
+  width: 22px;
+  height: 16px;
+  border: 2px solid white;
+}
+.currentflag {
+  border: 2px solid black;
+}
+
+.vcentered {
+  vertical-align: middle;
+}
+</style>
