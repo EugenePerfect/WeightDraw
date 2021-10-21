@@ -2,12 +2,6 @@
 const hour_len_ms = 60 * 60 * 1000;
 const day_len_ms = 24 * hour_len_ms;
 
-// Количество дней, которые учитываются в усреднении "старта" и "конца"
-const average_window_days = 5;
-
-let smooth = false;
-let month_format = "январь";
-
 function ZeroFill(n){
   if(n >= 10) return n;
 
@@ -64,25 +58,15 @@ Date.prototype.IsSameMonth = function (s){
 
 // Возвращает строку названия месяца
 Date.prototype.GetMonthName = function (format){
-  var names = [ 
-    "январь", "февраль", "март", "апрель", "май", "июнь", 
-    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" 
-  ];
+  if(format == str["format_month_full"]) return month_names[this.getMonth()];
 
-  var short_names = [ 
-    "янв", "фев", "мар", "апр", "май", "июн", 
-    "июл", "авг", "сен", "окт", "ноя", "дек" 
-  ];
-
-  if(format == "январь") return names[this.getMonth()];
-
-  if(format == "янв") return short_names[this.getMonth()];
+  if(format == str["format_month_short"]) return month_short_names[this.getMonth()];
 
   if(format == "01") return ZeroFill(this.getMonth() + 1);
      
   if(format == "01/21") return ZeroFill(this.getMonth() + 1) + "/" + ZeroFill(this.getFullYear() - 2000);
 
-  if(format == "янв 21") return short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
+  if(format == str["format_month_year"]) return month_short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
 
   return names[this.getMonth()];
 };
@@ -140,226 +124,6 @@ Date.prototype.GetMonthName = function (format){
 Array.prototype.insert = function ( index, item ) {
     return this.splice( index, 0, item );
 };
-
-// Реализацию сплайна Акимы я портировал из C-кода программы для debian aspline Дэвида Фрея.
-// Адрес (мертвая ссылка) http://homepage.hispeed.ch/david.frey/
-
-function AkimaSpline () {
-  var _calculated = false;
-  var _x = [];
-  var _y = [];
-
-  var _vx = [];
-  var _vy = [];
-
-  var _dx = [];
-  var _dy = [];
-
-  var _m = [];
-  var _t = [];
-
-  var _C = [];
-  var _D = [];
-
-  this.Dump = function(){
-    console.log("AkimaSpline():IsOK()", this.IsOK());
-    console.log("AkimaSpline():GetCount()", this.GetCount());
-    console.log("_calculated", _calculated);
-    console.log("_x", _x);
-    console.log("_y", _y);
-
-    if(_calculated){
-      console.log("_vx", _vx);
-      console.log("_vy", _vy);
-
-      console.log("_dx", _dx);
-      console.log("_dy", _dy);
-
-      console.log("_m", _m);
-      console.log("_t", _t);
-
-      console.log("_C", _C);
-      console.log("_D", _D);
-    }
-  };
-
-  this.IsOK = function() { return _x.length > 1 ? true : false; };
-
-  this.GetCount = function() { return _x.length; };
-
-  this.GetMinX = function() { return _x.length ? _x[0] : Number.POSITIVE_INFINITY ; };
-  this.GetMaxX = function() { return _x.length ? _x[_x.length - 1] : Number.POSITIVE_INFINITY ; };
-
-  this.GetX = function(i) { 
-    if(i >= _x.length) return Number.POSITIVE_INFINITY;
-    if(i < 0) return Number.NEGATIVE_INFINITY;
-
-    return _x[i];
-  };
-
-  this.GetY = function(i) { 
-    if(i >= _y.length) return Number.POSITIVE_INFINITY;
-    if(i < 0) return Number.NEGATIVE_INFINITY;
-
-    return _y[i];
-  };
-
-  this.Reset = function() { _x = []; _y = []; _dx = []; _dy = []; _vx = []; _vy = []; _s = []; _m = []; _t = []; _C = []; _D = []; _calculated = false; };
-
-  this.AddValue = function (x, y) {
-    if(_x.length)
-      for (var i = 0; i < _x.length; i++){
-        if(Math.abs(x - _x[i]) < Number.EPSILON){
-          console.log("AddValue (", x, y, "): абцисса уже есть в массиве, проигнорировано");
-          return false;
-        }
-    
-        if(x < _x[i]){
-          _x.insert(i, x);
-          _y.insert(i, y);
-          _calculated = false;
-          return true;
-        }
-      }
-
-    _x.push(x);
-    _y.push(y);
-    _calculated = false;
-    return true;
-  };
-
-  this.CalculateCoeffs = function (){
-    if(_calculated) return;
-
-    _vx = [];
-    _vy = [];
-
-    var n = _x.length + 4;
-    console.log("n = ", n);
-
-  /* Add leading and trailing extrapolation points, actual values will be filled in later */
-    _vx.push(0);
-    _vx.push(0);
-    _vx = _vx.concat(_x);
-    _vx.push(0);
-    _vx.push(0);
-
-    _vy.push(0);
-    _vy.push(0);
-    _vy = _vy.concat(_y);
-    _vy.push(0);
-    _vy.push(0);
-
-    _dx = Array(n);
-    _dy = Array(n);
-
-    _m = Array(n);
-    _t = Array(n);
-
-    _C = Array(n);
-    _D = Array(n);
-
-
-  /* a) Calculate the differences and the slopes m[i]. */
-
-    for(var i = 2; i < n - 3; i++) {
-      _dx[i] = _vx[i+1] - _vx[i]; 
-      _dy[i] = _vy[i+1] - _vy[i];
-      _m[i] = _dy[i] / _dx[i]; /* dx != 0, asserted by insertpoint() */
-    }
-
-  /* b) interpolate the missing points: */
-
-    _vx[1] = _vx[2] + _vx[3] - _vx[4];
-    _dx[1] = _vx[2] - _vx[1];
-
-    _vy[1] = _dx[1] * (_m[3] - 2*_m[2]) + _vy[2]; 
-    _dy[1] = _vy[2] - _vy[1];
-    _m[1] = _dy[1] / _dx[1];
-
-
-    _vx[0] = 2*_vx[2] - _vx[4];
-    _dx[0] = _vx[1] - _vx[0];
-
-    _vy[0] = _dx[0]*(_m[2] - 2*_m[1]) + _vy[1]; 
-    _dy[0] = _vy[1] - _vy[0];
-    _m[0] = _dy[0]/_dx[0];
-
-    _vx[n-2] = _vx[n-3] + _vx[n-4] - _vx[n-5];
-    _vy[n-2] = (2*_m[n-4] - _m[n-5]) * (_vx[n-2] - _vx[n-3]) + _vy[n-3];
-
-    // Ошибка и ее исправление:ниже используется _m[n-3] до его вычисления
-    _dx[n-3] = _vx[n-2] - _vx[n-3]; _dy[n-3] = _vy[n-2] - _vy[n-3];
-    _m[n-3] = _dy[n-3] / _dx[n-3];
-
-//    _m[n-3] = 0;
-    
-    _vx[n-1] = 2*_vx[n-3] - _vx[n-5];
-    _vy[n-1] = (2*_m[n-3] - _m[n-4])*(_vx[n-1] - _vx[n-2]) + _vy[n-2];
-
-    for (var i = n-3; i < n-1; i++) {
-      _dx[i] = _vx[i+1] - _vx[i]; _dy[i] = _vy[i+1] - _vy[i];
-      _m[i] = _dy[i] / _dx[i];
-    }
-
-    
-    _t[0]=0.0; _t[1]=0.0;  /* not relevant */
-    _t[n-1]=0.0; _t[n-2]=0.0;  /* not relevant - тоже не было в оригинале */
-
-    for (var i = 2; i < n - 2; i++) {
-      var num = Math.abs(_m[i+1] - _m[i]) * _m[i-1] + Math.abs(_m[i-1] - _m[i-2])*_m[i];
-      var den = Math.abs(_m[i+1] - _m[i]) + Math.abs(_m[i-1] - _m[i-2]);
-
-      if(den > Number.EPSILON) _t[i]= num/den; else _t[i]=0.0;
-    }
-
-    /* c) Allocate the polynom coefficients */
-
-    for (var i = 2; i < n-2; i++) {
-      _C[i] = (3*_m[i] - 2*_t[i] - _t[i+1])/_dx[i];
-      _D[i] = (_t[i] + _t[i+1] - 2*_m[i])/(_dx[i]*_dx[i]);
-    }
-
-    _calculated = true;
-
-  };
-
-  this.Approximate = function (cx){
-    if(this.GetCount() < 2) return Number.POSITIVE_INFINITY;
-
-    if(this.GetCount() == 2){
-      var dx = _x[1] - _x[0], dy = _y[1] - _y[0];
-
-      var m = dy / dx; /* dx != 0.0 asserted by insertpoint */
-
-      return _y[0] + m * (cx - _x[0]);
-    }
-
-    this.CalculateCoeffs();
-
-    // Возвратить "бесконечность", если вне интервала аппроксимации
-    if(cx < this.GetMinX() || cx > this.GetMaxX())
-      return Number.POSITIVE_INFINITY;
-
-    var p = 2;
-
-    for(; p < _vx.length - 2; p++){
-      if(Math.abs(cx - _vx[p]) < Number.EPSILON) /* strict match */
-        return _vy[p];
-
-      if(_vx[p] > cx) 
-        break;
-    }
-
-    var xd = (cx - _vx[p-1]);
-
-    return _vy[p-1] + (_t[p-1] + (_C[p-1] + _D[p-1]*xd)*xd)*xd;
-
-  };
-
-};
-
-//CanvasRenderingContext2D
 
 // Рисуем линию, сохраняя и восстанавливая выбранный цвет и ширину в контексте
 function line(ctx, w, x1, y1, x2, y2, s = false) {
@@ -438,10 +202,10 @@ var myDataSet = {
     return Math.round((this.X(this.TotalDots() - 1).getTime() - this.X(0).getTime()) / day_len_ms) - 1;
   },
 
-  StartWeight : function (average_window_days) {
+  StartWeight : function (nAverageWindowDays) {
     if(!this.dataloaded) this.LoadData();
 
-    const average_window_ms = average_window_days * day_len_ms;
+    const average_window_ms = nAverageWindowDays * day_len_ms;
 
     var start = this.X(0).getTime();
     var n = 0; s = 0;
@@ -460,10 +224,10 @@ var myDataSet = {
     return start_weight;
   },
 
-  EndWeight : function (average_window_days) {
+  EndWeight : function (nAverageWindowDays) {
     if(!this.dataloaded) this.LoadData();
 
-    const average_window_ms = average_window_days * day_len_ms;
+    const average_window_ms = nAverageWindowDays * day_len_ms;
 
     var start = this.X(this.TotalDots() - 1).getTime();
     var n = 0; s = 0;
@@ -481,10 +245,10 @@ var myDataSet = {
     return end_weight;
   },
 
-  TotalLoss : function (average_window_days) {
+  TotalLoss : function (nAverageWindowDays) {
     if(!this.dataloaded) this.LoadData();
 
-    return this.EndWeight(average_window_days) - this.StartWeight(average_window_days);
+    return this.EndWeight(nAverageWindowDays) - this.StartWeight(nAverageWindowDays);
   },
 
   X : function (i) {
@@ -543,8 +307,11 @@ var myDataSet = {
       if(this.Y(i) > this.yMax) this.yMax = this.Y(i);
     }
     
-    this.scale_w_min = 5 * Math.floor(this.yMin / 5);
-    this.scale_w_max = 5 * Math.ceil (this.yMax / 5);
+    this.scale_w_min = Math.floor(this.yMin) - 1;
+    this.scale_w_max = Math.ceil (this.yMax) + 1;
+
+//    this.scale_w_min = 5 * Math.floor(this.yMin / 5);
+//    this.scale_w_max = 5 * Math.ceil (this.yMax / 5);
 
     this.initdone = true;
   }
@@ -581,17 +348,19 @@ function FindThis(element, index, array){
   return (this == element.number); 
 }
 
+const nStatRow1Offset = 28;
+const nStatRow2Offset = 48;
+const strStatFont = "18px serif";
+
 function DrawStatistics(ctx, y1, XScaler, day1, day2, monthloss, weekloss, color = 'black'){
   var xl = XScaler.Transform(day1);
   var xr = XScaler.Transform(day2);
 
-  var txt1 = monthloss + " кг/мес";
-  var txt2 = weekloss + " кг/нед ";
-
   ctx.fillStyle = color;
-  ctx.font = '18px serif';
-  ctx.fillText(txt1, (xr + xl) / 2, y1 + 40);
-  ctx.fillText(txt2, (xr + xl) / 2, y1 + 56);
+  ctx.font = strStatFont;
+
+  ctx.fillText(monthloss, (xr + xl) / 2, y1 + nStatRow1Offset);
+  ctx.fillText(weekloss,  (xr + xl) / 2, y1 + nStatRow2Offset);
 }
 
 function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, StrokeStyle){
@@ -645,7 +414,7 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
   ctx.strokeStyle = keepstyle;
 }
 
-function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
+function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
   if(myDataSet.TotalDots() < 2){
     alert("Нечего рисовать. Нужно минимум две точки.");
     return;
@@ -657,13 +426,24 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   var XScaler = new CScaler(dmin, dmax, x1, x2);
   var YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
 
-  var spline = new AkimaSpline();
+  if(config.bDrawMinMaxLines){
+    // Рисуем линию максимального веса 
+    hline(ctx, 0.5, x1, x2, YScaler.Transform(myDataSet.GetMax()), "red");
+
+    // Рисуем линию минимального веса 
+    hline(ctx, 0.5, x1, x2, YScaler.Transform(myDataSet.GetMin()), "green");
+  }
+
+  // Объект сплайна создается в любом случае, даже если рисуем без сглаживания!
+  var spline = config.nSmoothType == 1 ? new AkimaSpline() : new CubicSpline2();
 
   // Сначала рисуем ломаную через все точки 
   for(var x = 0; x < myDataSet.TotalDots(); x++)
     spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
 
-  DrawGraph(ctx, spline, XScaler, YScaler, smooth, nDayWidth);
+  DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nDayWidth);
+
+  spline.Dump();
 
   // Теперь сами точки, если необходимо, квадратиками
   if(nDrawDots){
@@ -674,9 +454,9 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       var nExtremumWidth = nDayWidth * 2; 
 
       // Точку с минимальным значением рисуем зеленым квадратом двойного размера, максимальным - красного
-      if(myDataSet.Y(x) == myDataSet.GetMin())
+      if(myDataSet.Y(x) == myDataSet.GetMin() && config.bDrawMinMaxBoxes)
         vline(ctx, nExtremumWidth * 2, xc, yc - nExtremumWidth, yc + nExtremumWidth, 'green');
-      else if(myDataSet.Y(x) == myDataSet.GetMax())
+      else if(myDataSet.Y(x) == myDataSet.GetMax() && config.bDrawMinMaxBoxes)
         vline(ctx, nExtremumWidth * 2, xc, yc - nExtremumWidth, yc + nExtremumWidth, 'red');
       else 
         vline(ctx, nDayWidth * 1.5, xc, yc - nDayWidth, yc + nDayWidth);
@@ -684,10 +464,10 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   }
 
   // Теперь ломаную через точки с усреднением, если задано
-  if(mesh){
+  if(config.nMeshSize){
     spline.Reset();
 
-    const week_len_ms = mesh * day_len_ms;
+    const week_len_ms = config.nMeshSize * day_len_ms;
     let week_start = dmin;
 
     let s = 0, n = 0;
@@ -711,7 +491,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       n++; 
     }
 
-    DrawGraph(ctx, spline, XScaler, YScaler, smooth, nWeekWidth, sWeekStyle);
+    DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nWeekWidth, sWeekStyle);
   }
 
   // Сначала строим список месяцев
@@ -726,7 +506,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       var length = firstday.daysInMonth();
       var m = { 
          number : Month, // Текстовая строка вида "01.21"  
-         name : firstday.GetMonthName(month_format), // Название месяца словами
+         name : firstday.GetMonthName(config.sMonthFormat), // Название месяца словами
          firstday: firstday, // Первый день месяца
          length: length, // Дней в месяце
          middle: MakeMonthDate(Month, Math.round10(length / 2)), // Середина месяца
@@ -738,6 +518,15 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
   }
 
   console.log(aMonth);
+
+// Подписи статистики слева
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = 'black';
+
+  ctx.textAlign = 'left';
+  ctx.font = strStatFont;
+  ctx.fillText(str["kgmonth"], 5, y0 + nStatRow1Offset);
+  ctx.fillText(str["kgweek"],  5, y0 + nStatRow2Offset);
 
   // Рассчитываем точки помесячно и рисуем шкалу по оси Х
   for(var m = 0; m < aMonth.length; m++){
@@ -795,12 +584,13 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
     ctx.save();
 
-    ctx.strokeStyle = 'gray'; 
-    ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
 
     var strMonthFont = 'bold 24px serif';
-    
+
+    const nMonthNamePos = y0;
+
     if(!m){ // Для первого месяца пишем название только в случае, 
             // если начало данных приходится на 15е число или ранее; 
             // статистика за этот месяц не считается 
@@ -810,7 +600,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
         ctx.fillStyle = 'blue';
         ctx.font = strMonthFont;
-        ctx.fillText(aMonth[m].name, (xr + xl) / 2, y1 + 10);
+        ctx.fillText(aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
       }  
     }else{ 
       // Вывод статистики за месяц
@@ -822,9 +612,8 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
         // т.к. влияние разной длины месяца нивелируется
         var weekloss = Math.round10(monthloss * 7 / aMonth[m].length, -2);           
 
-        DrawStatistics(ctx, y1, XScaler, aMonth[m - 1].firstday, aMonth[m].firstday, monthloss, weekloss);
-
-
+        DrawStatistics(ctx, y0, XScaler, aMonth[m - 1].firstday, aMonth[m].firstday, monthloss, weekloss);
+        
         console.log("aMonth.length = ", aMonth.length);
         console.log("m = ", m);
         console.log(aMonth[m]);
@@ -837,14 +626,14 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
 
         ctx.fillStyle = 'blue';
         ctx.font = strMonthFont;
-        ctx.fillText(aMonth[m].name, (xr + xl) / 2, y1 + 10);
+        ctx.fillText(aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
 
         // Для последнего неполного месяца 
         if(m + 1 == aMonth.length){
           // Число дней
           var days = (myDataSet.LastX() - aMonth[m].firstday) / day_len_ms;
           // Потеряно килограмм
-          var loss = myDataSet.EndWeight(average_window_days) - aMonth[m].startweight;
+          var loss = myDataSet.EndWeight(nAverageWindowDays) - aMonth[m].startweight;
           // В день терялось
           var dailyloss = loss / days; 
 
@@ -852,7 +641,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
           var monthloss = Math.round10(dailyloss * aMonth[m].length, -1);
           var weekloss = Math.round10(dailyloss * 7, -2);           
 
-          DrawStatistics(ctx, y1, XScaler, aMonth[m].firstday, myDataSet.LastX(), monthloss, weekloss, 'gray');
+          DrawStatistics(ctx, y0, XScaler, aMonth[m].firstday, myDataSet.LastX(), monthloss, weekloss, 'gray');
         }
       }
     }
@@ -865,31 +654,32 @@ function DrawSmart(ctx, x1, y1, x2, y2, mesh = nWeekDays, show_weeks = true){
       // не совсем очевидно, что последняя точка, которая в этом случае совпадает с линией, относится 
       // уже к новому месяцу 
       var x = XScaler.Transform(aMonth[m].firstday - day_len_ms / 2);
-      vline(ctx, 1, x, y1, y2, 'gray');
+      vline(ctx, 1, x, y0 + 10, y2, 'gray');
     }
   }
-
+    
   // Линия по среднемесячным 
-  spline.Reset();
+  if(config.bDrawMonthlyGraph){
+    spline.Reset();
 
-  for(var m = 0; m < aMonth.length; m++)
-    spline.AddValue(aMonth[m].Xv, aMonth[m].Yv);
+    for(var m = 0; m < aMonth.length; m++)
+      spline.AddValue(aMonth[m].Xv, aMonth[m].Yv);
 
-  DrawGraph(ctx, spline, XScaler, YScaler, smooth, nMonthWidth, sMonthStyle);
+    DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nMonthWidth, sMonthStyle);
+  }
 
 //  spline.Dump();
-
   console.log(aMonth);
 
   // Обозначание воскресений. Тупо проходим по всем дням и отмечаем те, в которых день недели = 0 (вс) 
-  if(show_weeks){
+  if(config.bShowSundays){
     ctx.strokeStyle = 'red'; 
     for(var sun = myDataSet.X(0).getTime(); sun <= myDataSet.LastX().getTime() + hour_len_ms; sun += day_len_ms){
 
       var ddd = new Date(sun);
       if(!ddd.getDay()){
         var sunpos = x1 + Scaler(sun, dmin, dmax, x1, x2);
-        vline(ctx, 0.5, sunpos, y2, y1 + 60);
+        vline(ctx, 0.5, sunpos, y2, y1);
       }
     }
   }
@@ -912,12 +702,12 @@ function DrawRegular(ctx, x1, y1, x2, y2){
   }
 }
 
-function Draw(w, h, m, week, method, id){
+function Draw(config, method, id){
   var canvas = document.getElementById(id);
   var ctx = canvas.getContext('2d');
 
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = config.width;
+  canvas.height = config.height;
 
   ctx.globalCompositeOperation = 'source-over';
   ctx.clearRect(0, 0, canvas.width, canvas.height); // clear canvas
@@ -925,18 +715,21 @@ function Draw(w, h, m, week, method, id){
 
   ctx.textBaseline = 'middle';
 
-  const vborder = 32;
-  const topborder = 96, bottomborder = 32;
+  const vborder = 48;
+  const topborder = 86, bottomborder = 32;
 
   var x1 = vborder, x2 = canvas.width - vborder;
-  var y1 = topborder, y2 = canvas.height - bottomborder;
+  var y0 = topborder, y2 = canvas.height - bottomborder;
+
+  let y1 = y0 + 72;
 
   var column = (x2 - x1) / (myDataSet.TotalDots() + 1);
 
   ctx.font = '16px serif';
 
-  const maxtext = "максимум, кг: ";
-  const mintext = "минимум, кг: ";
+  let maxtext = str["weight_max"]; // "максимум, кг: ",
+  let mintext = str["weight_min"]; // "минимум, кг: ", 
+
   const textstartx = 10;
   const textstarty = 20;
   const textline = 20;
@@ -952,42 +745,57 @@ function Draw(w, h, m, week, method, id){
   ctx.fillText(mintext, textstartx, textstarty + textline);
   ctx.fillText(myDataSet.GetMin(), second_col_x, textstarty + textline);
 
-  var total_loss = myDataSet.TotalLoss(average_window_days);
+  var total_loss = myDataSet.TotalLoss(nAverageWindowDays);
 
-  ctx.fillText("суммарно, кг: " + Math.round10(total_loss, -1) + " за " + myDataSet.TotalDays() + " дней" , textstartx, textstarty + 2 * textline);
+  let txtLossTotal = str["weight_loss_total"]; // "суммарно, кг: " 
+  let txtLossFor   = str["weight_loss_for"];   // " за "
+  let txtLossDays  = str["weight_loss_days"];  // " дней",
+
+  ctx.fillText(txtLossTotal + Math.round10(total_loss, -1) + txtLossFor + 
+               myDataSet.TotalDays() + txtLossDays, textstartx, textstarty + 2 * textline);
 
 //  ctx.textAlign = 'center';
 //  ctx.fillText("Метод: " + method, w / 2, textstarty);
 
+  const samplewidth = 20;
 
-  const samlplewidth = 20;
-  const dailytext = "все точки";
-  const monthlytext = "среднемесячный";
-  const weeklytext = "усредненный";
-  var mtext = ctx.measureText(monthlytext);
-  var centerwidth = samlplewidth + mtext.width;
+  let dailytext = str["graph_all_points"]; // "все точки",
+  let monthlytext = str["graph_month_average"]; // "усредненный",
+  let weeklytext = str["graph_averaged"]; //"среднемесячный",
+
+  let mtext = ctx.measureText(monthlytext);
+  let centerwidth = samplewidth + mtext.width;
 
   ctx.textAlign = 'left';
 
-  var centerleft = w/2 - centerwidth/2;
+  let centerleft = canvas.width/2 - centerwidth/2;
 
-  hline(ctx, nDayWidth, centerleft, centerleft + samlplewidth - 5, textstarty, sDayStyle);
-  ctx.fillText(dailytext, centerleft + samlplewidth, textstarty);
+  hline(ctx, nDayWidth, centerleft, centerleft + samplewidth - 5, textstarty, sDayStyle);
+  ctx.fillText(dailytext, centerleft + samplewidth, textstarty);
 
-  hline(ctx, nWeekWidth, centerleft, centerleft + samlplewidth - 5, textstarty + textline, sWeekStyle);
-  ctx.fillText(weeklytext, centerleft + samlplewidth, textstarty + textline);
+  if(config.nMeshSize){
+    hline(ctx, nWeekWidth, centerleft, centerleft + samplewidth - 5, textstarty + textline, sWeekStyle);
+    ctx.fillText(weeklytext, centerleft + samplewidth, textstarty + textline);
+  }
 
-  hline(ctx, nMonthWidth, centerleft, centerleft + samlplewidth - 5, textstarty + 2 * textline, sMonthStyle);
-  ctx.fillText(monthlytext, centerleft + samlplewidth, textstarty + 2 * textline);
+  if(config.bDrawMonthlyGraph){
+    hline(ctx, nMonthWidth, centerleft, centerleft + samplewidth - 5, textstarty + 2 * textline, sMonthStyle);
+    ctx.fillText(monthlytext, centerleft + samplewidth, textstarty + 2 * textline);
+  }
 
   var daily_loss = total_loss / myDataSet.TotalDays();
 
   var month_days = (365 * 3 + 366) / (4 * 12);
 
   ctx.textAlign = 'right';
-  ctx.fillText("В среднем за сутки " + Math.round10(daily_loss, -3) + " кг", textendx, textstarty);
-  ctx.fillText("В среднем за неделю " + Math.round10(daily_loss * 7, -2) + " кг", textendx, textstarty + textline);
-  ctx.fillText("В среднем за месяц " + Math.round10(daily_loss * month_days, -1) + " кг", textendx, textstarty + 2 * textline);
+
+  let txtAverageDay   = str["weight_loss_average_day"]; // "В среднем за сутки ",
+  let txtAverageWeek  = str["weight_loss_average_week"]; // "В среднем за неделю ",
+  let txtAverageMonth = str["weight_loss_average_month"]; // "В среднем за месяц ",
+
+  ctx.fillText(txtAverageDay + Math.round10(daily_loss, -3) + " " + str["kg"], textendx, textstarty);
+  ctx.fillText(txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + textline);
+  ctx.fillText(txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * textline);
 
   // Главные оси 
   vline(ctx, 2, x1, y1, y2);
@@ -997,10 +805,12 @@ function Draw(w, h, m, week, method, id){
   for(var j = myDataSet.GetScaleMin(); j <= myDataSet.GetScaleMax(); j++){
     var y = y2 - Scaler(j, myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
 
-    ctx.font = '12px serif';
+    ctx.font = '14px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(j, vborder / 2, y);
+
+    if(j != myDataSet.GetScaleMin() && j != myDataSet.GetScaleMax())
+      ctx.fillText(j, vborder / 2, y);
 
     hline(ctx, 1, x1 - 2, x1 + 2, y);
 
@@ -1014,43 +824,51 @@ function Draw(w, h, m, week, method, id){
   ctx.strokeStyle = sDayStyle; 
 
   if(method == 'smart') 
-    DrawSmart(ctx, x1, y1, x2, y2, m, week);
+    DrawSmart(ctx, x1, y1, x2, y2, y0, config);
   else /*(method == 'regular')*/
     DrawRegular(ctx, x1, y1, x2, y2);
 }
 
 function Update(){
+  let no = str["none"];;
 
-  var size_raw = $("#size_selector")[0].value;
+  let config = {};
 
-  var m = $("#mesh_selector")[0].value;
-  if(m == 'нет') m = 0;
+  let size_raw = $("#size_selector")[0].value.split(' ');
+  config.width = parseInt(size_raw[0], 10);
+  config.height = parseInt(size_raw[2], 10);
 
-  var week = $("#weeksshow_selector")[0].value;
+  config.bShowSundays = $("#showsundays_selector")[0].checked;
+  config.bDrawMinMaxBoxes= $("#showminmaxdots_selector")[0].checked;
+  config.bDrawMinMaxLines = $("#showminmaxlines_selector")[0].checked;
 
-  var size_raw = size_raw.split(' ');
+  config.bDrawMonthlyGraph = $("#showmonthlygraph_selector")[0].checked;
 
-  var width = parseInt(size_raw[0], 10); 
-  var height = parseInt(size_raw[2], 10); 
+  config.sMonthFormat = $("#monthlabels_selector")[0].value;
 
-  console.log("Update():", "size_raw = ", size_raw, ", width=", width, ", height=", height);
+  let smooth = $("#smoothing_selector")[0].value;
+  config.nSmoothType = (smooth == str["spline_akima"]) ? 1 :(smooth == str["spline_cubic"]) ? 2 : false;
 
-  week = (week == 'отметить') ? true : false;
+  let m = $("#mesh_selector")[0].value;
+  config.nMeshSize = m == no ? m = 0 : m;
 
-  smooth = ($("#smoothing_selector")[0].value == "да") ? true : false;
 
-  month_format = $("#monthlabels_selector")[0].value;
+  console.log("Update():", "config = ", config);
 
-  Draw(width, height, m, week, 'smart', 'canvas2');
+  Draw(config, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
 }
 
-$("#mesh_selector")[0].value = nWeekDays;
+$("#mesh_selector")[0].value = nDefaultWeekDays;
 
 $("#size_selector").bind( "change", function(e) { Update(); });
 $("#mesh_selector").bind( "change", function(e) { Update(); });
-$("#weeksshow_selector").bind( "change", function(e) { Update(); });
+$("#showsundays_selector").bind( "change", function(e) { Update(); });
 $("#smoothing_selector").bind( "change", function(e) { Update(); });
 $("#monthlabels_selector").bind( "change", function(e) { Update(); });
+$("#showminmaxdots_selector").bind( "change", function(e) { Update(); });
+$("#showminmaxlines_selector").bind( "change", function(e) { Update(); });
+
+$("#showmonthlygraph_selector").bind( "change", function(e) { Update(); });
 
 Update();
