@@ -34,6 +34,7 @@ let str = {
   none: "нет",
   kgweek: "кг/нед",
   kgmonth: "кг/мес",
+  g: "г",
   kg: "кг"
 };
 

@@ -321,6 +321,62 @@ function Scaler(v, v_min, v_max, scr_min, scr_max){
   return (v - v_min) * (scr_max - scr_min) / (v_max - v_min);
 }
 
+class CTextStyler {
+  constructor(font, fillStyle = 'black', textAlign = 'center', textBaseline = 'middle', shadowOffsetX = 0, shadowOffsetY = 0, shadowBlur = 0.0, shadowColor = "rgba(0, 0, 0, 0)") {
+    if(font instanceof CTextStyler){ // конструктор копирования
+      this.font = font.font;
+      this.fillStyle = font.fillStyle;
+      this.textAlign = font.textAlign;
+      this.textBaseline = font.textBaseline;
+      this.shadowOffsetX = font.shadowOffsetX;     
+      this.shadowOffsetY = font.shadowOffsetY;     
+      this.shadowBlur = font.shadowBlur;
+      this.shadowColor= font.shadowColor;
+    }else{
+      this.font = font;
+      this.fillStyle = fillStyle;
+      this.textAlign = textAlign;
+      this.textBaseline = textBaseline;
+      this.shadowOffsetX = shadowOffsetX;     
+      this.shadowOffsetY = shadowOffsetY;     
+      this.shadowBlur = shadowBlur;
+      this.shadowColor= shadowColor;
+    }
+  }
+
+  fillText(ctx, text, x, y) {
+    ctx.save();
+    ctx.font = this.font;
+    ctx.fillStyle = this.fillStyle;
+    ctx.textAlign = this.textAlign;
+    ctx.textBaseline = this.textBaseline;
+    ctx.shadowOffsetX = this.shadowOffsetX;     
+    ctx.shadowOffsetY = this.shadowOffsetY;     
+    ctx.shadowBlur = this.shadowBlur;
+    ctx.shadowColor= this.shadowColor;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  measureText(ctx, text){
+    ctx.save();
+
+    ctx.font = this.font;
+    ctx.textAlign = this.textAlign;
+    ctx.textBaseline = this.textBaseline;
+    ctx.shadowOffsetX = this.shadowOffsetX;     
+    ctx.shadowOffsetY = this.shadowOffsetY;     
+    ctx.shadowBlur = this.shadowBlur;
+    ctx.shadowColor= this.shadowColor;
+
+    let a = ctx.measureText(text);
+
+    ctx.restore();
+    return a;
+  }
+
+}
+
 class CScaler {
   constructor(v1, v2, cmin, cmax, reversed = false) {
     this.cmin = cmin; // Минимальная координата на экране
@@ -348,19 +404,35 @@ function FindThis(element, index, array){
   return (this == element.number); 
 }
 
+let MonthStyle = new CTextStyler('bold 24px serif', 'blue', 'center', 'top', 2, 2, 2, "rgba(0, 0, 63, 0.3)");
+
+let StatStyle  = new CTextStyler('bold 18px serif', 'black', 'center', 'top');
+let StatHeader = new CTextStyler(StatStyle);
+StatHeader.textAlign = 'left';
+
+let xScaleStyle = new CTextStyler('12px serif');
+let yScaleStyle = new CTextStyler('14px serif');
+
+let LegendStyle = new CTextStyler('16px serif');
+
+let LegendStyleR = new CTextStyler(LegendStyle);
+LegendStyleR.textAlign = 'right';
+
+let LegendStyleL = new CTextStyler(LegendStyle);
+LegendStyleL.textAlign = 'left';
+
 const nStatRow1Offset = 28;
 const nStatRow2Offset = 48;
-const strStatFont = "18px serif";
 
 function DrawStatistics(ctx, y1, XScaler, day1, day2, monthloss, weekloss, color = 'black'){
-  var xl = XScaler.Transform(day1);
-  var xr = XScaler.Transform(day2);
+  let xl = XScaler.Transform(day1);
+  let xr = XScaler.Transform(day2);
 
-  ctx.fillStyle = color;
-  ctx.font = strStatFont;
+  let StatStyle1 = new CTextStyler(StatStyle);
+  StatStyle1.fillStyle = color;
 
-  ctx.fillText(monthloss, (xr + xl) / 2, y1 + nStatRow1Offset);
-  ctx.fillText(weekloss,  (xr + xl) / 2, y1 + nStatRow2Offset);
+  StatStyle1.fillText(ctx, monthloss, (xr + xl) / 2, y1 + nStatRow1Offset);
+  StatStyle1.fillText(ctx, weekloss,  (xr + xl) / 2, y1 + nStatRow2Offset);
 }
 
 function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, StrokeStyle){
@@ -420,11 +492,11 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
     return;
   }
 
-  var dmin = myDataSet.X(0).getTime();   
-  var dmax = myDataSet.LastX().getTime();
+  let dmin = myDataSet.X(0).getTime();   
+  let dmax = myDataSet.LastX().getTime();
 
-  var XScaler = new CScaler(dmin, dmax, x1, x2);
-  var YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
+  let XScaler = new CScaler(dmin, dmax, x1, x2);
+  let YScaler = new CScaler(myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2, true);
 
   if(config.bDrawMinMaxLines){
     // Рисуем линию максимального веса 
@@ -520,13 +592,8 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
   console.log(aMonth);
 
 // Подписи статистики слева
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = 'black';
-
-  ctx.textAlign = 'left';
-  ctx.font = strStatFont;
-  ctx.fillText(str["kgmonth"], 5, y0 + nStatRow1Offset);
-  ctx.fillText(str["kgweek"],  5, y0 + nStatRow2Offset);
+  StatHeader.fillText(ctx, str["kgmonth"], 5, y0 + nStatRow1Offset);
+  StatHeader.fillText(ctx, str["kgweek"],  5, y0 + nStatRow2Offset);
 
   // Рассчитываем точки помесячно и рисуем шкалу по оси Х
   for(var m = 0; m < aMonth.length; m++){
@@ -537,12 +604,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
       if(fifth_x < x1) continue;
       if(fifth_x > x2) break;
 
-      ctx.strokeStyle = 'black'; 
-      ctx.font = '12px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      ctx.fillText(day, fifth_x, y2 + 10);
+      xScaleStyle.fillText(ctx, day, fifth_x, y2 + 10);
 
       vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
     }
@@ -582,35 +644,26 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
 
     if(n) aMonth[m].startweight = s / n;
 
-    ctx.save();
-
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'center';
-
-    var strMonthFont = 'bold 24px serif';
-
     const nMonthNamePos = y0;
 
     if(!m){ // Для первого месяца пишем название только в случае, 
             // если начало данных приходится на 15е число или ранее; 
             // статистика за этот месяц не считается 
       if(myDataSet.X(0).getDate() <= 20){
-        var xl = x1;
-        var xr = XScaler.Transform(aMonth[m + 1].firstday);
+        let xl = x1;
+        let xr = XScaler.Transform(aMonth[m + 1].firstday);
 
-        ctx.fillStyle = 'blue';
-        ctx.font = strMonthFont;
-        ctx.fillText(aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
+        MonthStyle.fillText(ctx, aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
       }  
     }else{ 
       // Вывод статистики за месяц
       if(m < aMonth.length && aMonth[m - 1].startweight){
         // Различие: "потеря за месяц" = потеря за календарный месяц
-        var monthloss = Math.round10(aMonth[m].startweight - aMonth[m - 1].startweight, -1);
+        let monthloss = Math.round10(aMonth[m].startweight - aMonth[m - 1].startweight, -1);
         // "потеря за неделю" = считается из предыдущего показателя в пересчете на 7 дней
         // в отличие от "потери за месяц" - это сравнимые показатели, 
         // т.к. влияние разной длины месяца нивелируется
-        var weekloss = Math.round10(monthloss * 7 / aMonth[m].length, -2);           
+        let weekloss = Math.round10(monthloss * 7 / aMonth[m].length, -2);           
 
         DrawStatistics(ctx, y0, XScaler, aMonth[m - 1].firstday, aMonth[m].firstday, monthloss, weekloss);
         
@@ -621,33 +674,29 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
 
       // Название пишем для следущего месяца и только для того случая, когда последняя точка это 15 число или далее
       if(m + 1 < aMonth.length || myDataSet.LastX().getDate() > 15){
-        var xl = XScaler.Transform(aMonth[m].firstday);
-        var xr = (m + 1 < aMonth.length) ? XScaler.Transform(aMonth[m + 1].firstday) : x2;
+        let xl = XScaler.Transform(aMonth[m].firstday);
+        let xr = (m + 1 < aMonth.length) ? XScaler.Transform(aMonth[m + 1].firstday) : x2;
 
-        ctx.fillStyle = 'blue';
-        ctx.font = strMonthFont;
-        ctx.fillText(aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
+        MonthStyle.fillText(ctx, aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
 
         // Для последнего неполного месяца 
         if(m + 1 == aMonth.length){
           // Число дней
-          var days = (myDataSet.LastX() - aMonth[m].firstday) / day_len_ms;
+          let days = (myDataSet.LastX() - aMonth[m].firstday) / day_len_ms;
           // Потеряно килограмм
-          var loss = myDataSet.EndWeight(nAverageWindowDays) - aMonth[m].startweight;
+          let loss = myDataSet.EndWeight(nAverageWindowDays) - aMonth[m].startweight;
           // В день терялось
-          var dailyloss = loss / days; 
+          let dailyloss = loss / days; 
 
           // Прогноз за целый месяц
-          var monthloss = Math.round10(dailyloss * aMonth[m].length, -1);
-          var weekloss = Math.round10(dailyloss * 7, -2);           
+          let monthloss = Math.round10(dailyloss * aMonth[m].length, -1);
+          let weekloss = Math.round10(dailyloss * 7, -2);           
 
           DrawStatistics(ctx, y0, XScaler, aMonth[m].firstday, myDataSet.LastX(), monthloss, weekloss, 'gray');
         }
       }
     }
 
-    ctx.restore();
- 
     if(m){
       // Вертикальные линии "граница между месяцами", рисуются на 12:00 последнего дня предыдущего месяца
       // Почему так? Если последняя точка - первое число, при рисовании разделителя на 00:00 первого числа
@@ -713,8 +762,6 @@ function Draw(config, method, id){
   ctx.clearRect(0, 0, canvas.width, canvas.height); // clear canvas
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-  ctx.textBaseline = 'middle';
-
   const vborder = 48;
   const topborder = 86, bottomborder = 32;
 
@@ -725,8 +772,6 @@ function Draw(config, method, id){
 
   var column = (x2 - x1) / (myDataSet.TotalDots() + 1);
 
-  ctx.font = '16px serif';
-
   let maxtext = str["weight_max"]; // "максимум, кг: ",
   let mintext = str["weight_min"]; // "минимум, кг: ", 
 
@@ -736,14 +781,14 @@ function Draw(config, method, id){
 
   var textendx = canvas.width - textstartx;
 
-  let text = ctx.measureText(maxtext);
+  let text = LegendStyleL.measureText(ctx, maxtext);
   let second_col_x = textstartx + text.width;
 
-  ctx.fillText(maxtext, textstartx, textstarty);
-  ctx.fillText(myDataSet.GetMax(), second_col_x, textstarty);
+  LegendStyleL.fillText(ctx, maxtext, textstartx, textstarty);
+  LegendStyleL.fillText(ctx, myDataSet.GetMax(), second_col_x, textstarty);
 
-  ctx.fillText(mintext, textstartx, textstarty + textline);
-  ctx.fillText(myDataSet.GetMin(), second_col_x, textstarty + textline);
+  LegendStyleL.fillText(ctx, mintext, textstartx, textstarty + textline);
+  LegendStyleL.fillText(ctx, myDataSet.GetMin(), second_col_x, textstarty + textline);
 
   var total_loss = myDataSet.TotalLoss(nAverageWindowDays);
 
@@ -751,7 +796,7 @@ function Draw(config, method, id){
   let txtLossFor   = str["weight_loss_for"];   // " за "
   let txtLossDays  = str["weight_loss_days"];  // " дней",
 
-  ctx.fillText(txtLossTotal + Math.round10(total_loss, -1) + txtLossFor + 
+  LegendStyleL.fillText(ctx, txtLossTotal + Math.round10(total_loss, -1) + txtLossFor + 
                myDataSet.TotalDays() + txtLossDays, textstartx, textstarty + 2 * textline);
 
 //  ctx.textAlign = 'center';
@@ -771,31 +816,29 @@ function Draw(config, method, id){
   let centerleft = canvas.width/2 - centerwidth/2;
 
   hline(ctx, nDayWidth, centerleft, centerleft + samplewidth - 5, textstarty, sDayStyle);
-  ctx.fillText(dailytext, centerleft + samplewidth, textstarty);
+  LegendStyleL.fillText(ctx, dailytext, centerleft + samplewidth, textstarty);
 
   if(config.nMeshSize){
     hline(ctx, nWeekWidth, centerleft, centerleft + samplewidth - 5, textstarty + textline, sWeekStyle);
-    ctx.fillText(weeklytext, centerleft + samplewidth, textstarty + textline);
+    LegendStyleL.fillText(ctx, weeklytext, centerleft + samplewidth, textstarty + textline);
   }
 
   if(config.bDrawMonthlyGraph){
     hline(ctx, nMonthWidth, centerleft, centerleft + samplewidth - 5, textstarty + 2 * textline, sMonthStyle);
-    ctx.fillText(monthlytext, centerleft + samplewidth, textstarty + 2 * textline);
+    LegendStyleL.fillText(ctx, monthlytext, centerleft + samplewidth, textstarty + 2 * textline);
   }
 
-  var daily_loss = total_loss / myDataSet.TotalDays();
+  var daily_loss = total_loss * 1000 / myDataSet.TotalDays();
 
   var month_days = (365 * 3 + 366) / (4 * 12);
-
-  ctx.textAlign = 'right';
 
   let txtAverageDay   = str["weight_loss_average_day"]; // "В среднем за сутки ",
   let txtAverageWeek  = str["weight_loss_average_week"]; // "В среднем за неделю ",
   let txtAverageMonth = str["weight_loss_average_month"]; // "В среднем за месяц ",
 
-  ctx.fillText(txtAverageDay + Math.round10(daily_loss, -3) + " " + str["kg"], textendx, textstarty);
-  ctx.fillText(txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + textline);
-  ctx.fillText(txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * textline);
+  LegendStyleR.fillText(ctx, txtAverageDay + Math.round10(daily_loss, -1) + " " + str["g"], textendx, textstarty);
+  LegendStyleR.fillText(ctx, txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + textline);
+  LegendStyleR.fillText(ctx, txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * textline);
 
   // Главные оси 
   vline(ctx, 2, x1, y1, y2);
@@ -805,12 +848,8 @@ function Draw(config, method, id){
   for(var j = myDataSet.GetScaleMin(); j <= myDataSet.GetScaleMax(); j++){
     var y = y2 - Scaler(j, myDataSet.GetScaleMin(), myDataSet.GetScaleMax(), y1, y2);
 
-    ctx.font = '14px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
     if(j != myDataSet.GetScaleMin() && j != myDataSet.GetScaleMax())
-      ctx.fillText(j, vborder / 2, y);
+      yScaleStyle.fillText(ctx, j, vborder / 2, y);
 
     hline(ctx, 1, x1 - 2, x1 + 2, y);
 

@@ -34,6 +34,7 @@ let str = {
   none: "none",
   kgweek: "kg/wk",
   kgmonth: "kg/mon",
+  g: "g",
   kg: "kg"
 };
 
