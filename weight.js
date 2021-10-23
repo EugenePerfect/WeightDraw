@@ -413,7 +413,7 @@ StatHeader.textAlign = 'left';
 let xScaleStyle = new CTextStyler('12px serif');
 let yScaleStyle = new CTextStyler('14px serif');
 
-let LegendStyle = new CTextStyler('16px serif');
+let LegendStyle = new CTextStyler('18px serif');
 
 let LegendStyleR = new CTextStyler(LegendStyle);
 LegendStyleR.textAlign = 'right';
@@ -828,7 +828,7 @@ function Draw(config, method, id){
     LegendStyleL.fillText(ctx, monthlytext, centerleft + samplewidth, textstarty + 2 * textline);
   }
 
-  var daily_loss = total_loss * 1000 / myDataSet.TotalDays();
+  var daily_loss = total_loss / myDataSet.TotalDays();
 
   var month_days = (365 * 3 + 366) / (4 * 12);
 
@@ -836,7 +836,7 @@ function Draw(config, method, id){
   let txtAverageWeek  = str["weight_loss_average_week"]; // "В среднем за неделю ",
   let txtAverageMonth = str["weight_loss_average_month"]; // "В среднем за месяц ",
 
-  LegendStyleR.fillText(ctx, txtAverageDay + Math.round10(daily_loss, -1) + " " + str["g"], textendx, textstarty);
+  LegendStyleR.fillText(ctx, txtAverageDay + Math.round10(daily_loss * 1000, -1) + " " + str["g"], textendx, textstarty);
   LegendStyleR.fillText(ctx, txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + textline);
   LegendStyleR.fillText(ctx, txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * textline);
 
