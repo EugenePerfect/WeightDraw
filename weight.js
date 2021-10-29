@@ -507,7 +507,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
   }
 
   // Объект сплайна создается в любом случае, даже если рисуем без сглаживания!
-  var spline = config.nSmoothType == 1 ? new AkimaSpline() : new CubicSpline2();
+  var spline = config.nSmoothType == 1 ? new AkimaSpline() : new CubicSpline();
 
   // Сначала рисуем ломаную через все точки 
   for(var x = 0; x < myDataSet.TotalDots(); x++)
