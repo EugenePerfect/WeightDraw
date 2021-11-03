@@ -9,16 +9,9 @@ let month_short_names = [
 ];
 
 let str = {
-  format_month_full : "январь",
-  format_month_short : "янв",
-  format_month_year : "янв 21",
-
   graph_all_points : "все точки",
   graph_averaged   : "усредненный",
   graph_month_average: "среднемесячный",
-
-  spline_akima: "Сплайн Akima",
-  spline_cubic: "Кубический сплайн",
 
   weight_max: "максимум, кг: ",
   weight_min: "минимум, кг: ",

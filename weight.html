@@ -33,7 +33,7 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Усереднення: <select id="mesh_selector">
-      <option>немає</option>
+      <option value=0>немає</option>
       <option>3</option>
       <option>5</option>
       <option selected>7</option>
@@ -45,19 +45,21 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Апроксимація: <select id="smoothing_selector">
-      <option selected>немає</option>
-      <option>Сплайн Akima</option>
-      <option>Кубічний сплайн</option>
+      <option selected value="spline_base">немає</option>
+      <option value="spline_akima">Сплайн Akima</option>
+      <option value="spline_cubic">Кубічний сплайн</option>
+      <option value="spline_hermit">Сплайн Ерміта</option>
+      <option value="spline_catmullrom">Сплайн Катмулла-Рома</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
 
     Мітки місяців: <select id="monthlabels_selector">
-      <option>січень</option>
-      <option selected>січ</option>
-      <option>січ 21</option>
-      <option>01/21</option>
-      <option>01</option>
+      <option value="format_month_full"          >січень</option>
+      <option value="format_month_short" selected>січ</option>
+      <option value="format_month_year"          >січ 21</option>
+      <option value="format_month_year_digit"    >01/21</option>
+      <option value="format_month_digit"         >01</option>
     </select>
   </div>
 

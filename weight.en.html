@@ -33,7 +33,7 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Averaging, days: <select id="mesh_selector">
-      <option>none</option>
+      <option value=0>none</option>
       <option>3</option>
       <option>5</option>
       <option selected>7</option>
@@ -45,19 +45,21 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Approximation: <select id="smoothing_selector">
-      <option selected>none</option>
-      <option>Akima spline</option>
-      <option>Cubic spline</option> 
+      <option value="spline_base" selected>none</option>
+      <option value="spline_akima">Akima spline</option>
+      <option value="spline_cubic">Cubic spline</option> 
+      <option value="spline_hermit">Hermit spline</option> 
+      <option value="spline_catmullrom">Catmull Rom spline</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
 
     Labels format: <select id="monthlabels_selector">
-      <option>January</option>
-      <option selected>Jan</option>
-      <option>Jan 21</option>
-      <option>01/21</option>
-      <option>01</option>
+      <option value="format_month_full"          >January</option>
+      <option value="format_month_short" selected>Jan</option>
+      <option value="format_month_year"          >Jan 21</option>
+      <option value="format_month_year_digit"    >01/21</option>
+      <option value="format_month_digit"         >01</option>
     </select>
   </div>
 

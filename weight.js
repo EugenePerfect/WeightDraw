@@ -2,6 +2,15 @@
 const hour_len_ms = 60 * 60 * 1000;
 const day_len_ms = 24 * hour_len_ms;
 
+// Скорее всего, подлежит удалению
+function MatchString(s, a){
+  for(let i = 0; i < a.length; i++){
+    if(str[a[i]] == s) return a[i];
+  }
+
+  return false;
+}
+
 function ZeroFill(n){
   if(n >= 10) return n;
 
@@ -58,15 +67,15 @@ Date.prototype.IsSameMonth = function (s){
 
 // Возвращает строку названия месяца
 Date.prototype.GetMonthName = function (format){
-  if(format == str["format_month_full"]) return month_names[this.getMonth()];
+  if(format == "format_month_full") return month_names[this.getMonth()];
 
-  if(format == str["format_month_short"]) return month_short_names[this.getMonth()];
+  if(format == "format_month_short") return month_short_names[this.getMonth()];
 
-  if(format == "01") return ZeroFill(this.getMonth() + 1);
+  if(format == "format_month_digit") return ZeroFill(this.getMonth() + 1);
      
-  if(format == "01/21") return ZeroFill(this.getMonth() + 1) + "/" + ZeroFill(this.getFullYear() - 2000);
+  if(format == "format_month_year_digit") return ZeroFill(this.getMonth() + 1) + "/" + ZeroFill(this.getFullYear() - 2000);
 
-  if(format == str["format_month_year"]) return month_short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
+  if(format == "format_month_year") return month_short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
 
   return names[this.getMonth()];
 };
@@ -447,7 +456,7 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
 
   ctx.beginPath();
 
-  if(smooth){
+  if(spline.type != "spline_base"){
     let xt1 = spline.GetMinX(); // Время
     let xt2 = spline.GetMaxX();
 
@@ -506,8 +515,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
     hline(ctx, 0.5, x1, x2, YScaler.Transform(myDataSet.GetMin()), "green");
   }
 
-  // Объект сплайна создается в любом случае, даже если рисуем без сглаживания!
-  var spline = config.nSmoothType == 1 ? new AkimaSpline() : new CubicSpline();
+  // Если сглаживание не задано - используем базовый объект 
+  let spline = new Spline; 
+
+  switch(config.sSmoothType){
+    case "spline_akima": spline = new AkimaSpline(); break;
+    case "spline_cubic": spline = new CubicSpline(); break;
+    case "spline_hermit": spline = new MonotonicCubicSpline(); break;
+    case "spline_catmullrom": spline = new CatmullRomSpline(); break;
+    default: break;
+  }
+
+  console.log("spline type", spline.type);
 
   // Сначала рисуем ломаную через все точки 
   for(var x = 0; x < myDataSet.TotalDots(); x++)
@@ -869,8 +888,6 @@ function Draw(config, method, id){
 }
 
 function Update(){
-  let no = str["none"];;
-
   let config = {};
 
   let size_raw = $("#size_selector")[0].value.split(' ');
@@ -885,12 +902,9 @@ function Update(){
 
   config.sMonthFormat = $("#monthlabels_selector")[0].value;
 
-  let smooth = $("#smoothing_selector")[0].value;
-  config.nSmoothType = (smooth == str["spline_akima"]) ? 1 :(smooth == str["spline_cubic"]) ? 2 : false;
+  config.sSmoothType = $("#smoothing_selector")[0].value;
 
-  let m = $("#mesh_selector")[0].value;
-  config.nMeshSize = m == no ? m = 0 : m;
-
+  config.nMeshSize = $("#mesh_selector")[0].value;
 
   console.log("Update():", "config = ", config);
 

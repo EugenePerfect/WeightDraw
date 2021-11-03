@@ -9,16 +9,9 @@ let month_short_names = [
 ];
 
 let str = {
-  format_month_full : "січень",
-  format_month_short : "січ",
-  format_month_year : "січ 21",
-
   graph_all_points : "всі точки",
   graph_averaged   : "усереднене",
   graph_month_average: "середньомісячне",
-
-  spline_akima: "Сплайн Akima",
-  spline_cubic: "Кубічний сплайн",
 
   weight_max: "максимум, кг: ",
   weight_min: "мінімум, кг: ",
