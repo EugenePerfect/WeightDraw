@@ -1,7 +1,6 @@
 // Ширина и цвет линии "все точки"
 const nDayWidth = 2;
 const sDayStyle = 'blue'; 
-const nDrawDots = true;
 
 // Ширина и цвет линии "среднемесячная"
 const nMonthWidth = 9;
