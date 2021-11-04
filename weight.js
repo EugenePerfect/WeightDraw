@@ -451,6 +451,9 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
   let keepstyle = ctx.strokeStyle;
   if(typeof StrokeStyle !== 'undefined') ctx.strokeStyle = StrokeStyle;
 
+  let keepjoin = ctx.lineJoin;
+  ctx.lineJoin = 'bevel';
+
   console.log("DrawGraph(): spline.GetCount() = ", spline.GetCount());
   console.log("DrawGraph(): spline.GetMinX() = ", spline.GetMinX());
 
@@ -491,6 +494,7 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
 
   ctx.stroke();
 
+  ctx.lineJoin = keepjoin;
   ctx.lineWidth = keepwidth;
   ctx.strokeStyle = keepstyle;
 }
@@ -528,16 +532,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
 
   console.log("spline type", spline.type);
 
-  // Сначала рисуем ломаную через все точки 
-  for(var x = 0; x < myDataSet.TotalDots(); x++)
-    spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
+  if(config.bDrawMainGraph == "main_lines" || config.bDrawMainGraph == "main_all"){
+    // Сначала рисуем ломаную через все точки 
+    for(var x = 0; x < myDataSet.TotalDots(); x++)
+      spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
 
-  DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nDayWidth);
+    DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nDayWidth);
 
-  spline.Dump();
+    spline.Dump();
+  }
 
   // Теперь сами точки, если необходимо, квадратиками
-  if(nDrawDots){
+  if(config.bDrawMainGraph == "main_dots" || config.bDrawMainGraph == "main_all"){
     for(var x = 0; x < myDataSet.TotalDots(); x++){
       var xc = XScaler.Transform(myDataSet.X(x));
       var yc = YScaler.Transform(myDataSet.Y(x));
@@ -895,8 +901,14 @@ function Update(){
   config.height = parseInt(size_raw[2], 10);
 
   config.bShowSundays = $("#showsundays_selector")[0].checked;
-  config.bDrawMinMaxBoxes= $("#showminmaxdots_selector")[0].checked;
-  config.bDrawMinMaxLines = $("#showminmaxlines_selector")[0].checked;
+
+
+  let minmax = $("select#minmax_selector")[0].value;
+  config.bDrawMinMaxBoxes = (minmax == "minmax_all" || minmax == "minmax_dots") ? true : false;
+  config.bDrawMinMaxLines = (minmax == "minmax_all" || minmax == "minmax_lines") ? true : false;
+
+  debugger;
+  config.bDrawMainGraph = $("select#main__selector")[0].value;
 
   config.bDrawMonthlyGraph = $("#showmonthlygraph_selector")[0].checked;
 
@@ -919,8 +931,9 @@ $("#mesh_selector").bind( "change", function(e) { Update(); });
 $("#showsundays_selector").bind( "change", function(e) { Update(); });
 $("#smoothing_selector").bind( "change", function(e) { Update(); });
 $("#monthlabels_selector").bind( "change", function(e) { Update(); });
-$("#showminmaxdots_selector").bind( "change", function(e) { Update(); });
-$("#showminmaxlines_selector").bind( "change", function(e) { Update(); });
+
+$("#minmax_selector").bind( "change", function(e) { Update(); });
+$("#main__selector").bind( "change", function(e) { Update(); });
 
 $("#showmonthlygraph_selector").bind( "change", function(e) { Update(); });
 

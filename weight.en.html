@@ -66,9 +66,19 @@
   <p> 
     Draw: <label>Sundays <input type="checkbox" id="showsundays_selector" ></label>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>min and max points <input type="checkbox" id="showminmaxdots_selector" checked></label>
+    Maximal and minimal weight: <select id="minmax_selector">
+      <option value="minmax_none"          >do not hilite</option>
+      <option value="minmax_dots"          >dots</option>
+      <option value="minmax_lines"         >lines</option>
+      <option value="minmax_all"  selected >dots & lines</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>min and max lines<input type="checkbox" id="showminmaxlines_selector" checked></label>
+    Main graph: <select id="main__selector">
+      <option value="main_none"          >do not draw</option>
+      <option value="main_dots"          >dots</option>         
+      <option value="main_lines"         >lines</option>         
+      <option value="main_all"  selected >dots & lines</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
     <label>month average curve<input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>

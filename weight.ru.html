@@ -66,11 +66,21 @@
   <p> 
     Рисовать: <label>воскресенья <input type="checkbox" id="showsundays_selector" ></label>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>точки мин. и макс. веса <input type="checkbox" id="showminmaxdots_selector" checked></label>
+    Наименьший и наибольший вес: <select id="minmax_selector">
+      <option value="minmax_none"          >не отображать</option>
+      <option value="minmax_dots"          >точки</option>
+      <option value="minmax_lines"         >линии</option>
+      <option value="minmax_all"  selected >точки и линии</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>линии мин. и макс. веса <input type="checkbox" id="showminmaxlines_selector" checked></label>
+    Основной график: <select id="main__selector">
+      <option value="main_none"          >не отображать</option>
+      <option value="main_dots"          >точки</option>
+      <option value="main_lines"         >линии</option>
+      <option value="main_all"  selected >точки и линии</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>график по среднемесячным точкам <input type="checkbox" id="showmonthlygraph_selector" checked></label>
+    <label>график по среднемесячным<input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>
 
   <canvas id="canvas2"></canvas><br>

@@ -66,11 +66,21 @@
   <p> 
     Малювати: <label>неділі <input type="checkbox" id="showsundays_selector" ></label>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>точки мін. та макс. ваги<input type="checkbox" id="showminmaxdots_selector" checked></label>
+    Найменша та найбільша вага: <select id="minmax_selector">
+      <option value="minmax_none"          >не відображати</option>
+      <option value="minmax_dots"          >точки</option>
+      <option value="minmax_lines"         >лінії</option>
+      <option value="minmax_all"  selected >точки та лінії</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>лінії мін. ти макс. ваги <input type="checkbox" id="showminmaxlines_selector" checked></label>
+    Основний графік: <select id="main__selector">
+      <option value="main_none"          >не відображати</option>
+      <option value="main_dots"          >точки</option>         
+      <option value="main_lines"         >лінії</option>         
+      <option value="main_all"  selected >точки та лінії</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>графік по средньомісячним точкам <input type="checkbox" id="showmonthlygraph_selector" checked></label>
+    <label>графік по средньомісячним<input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>
 
   <canvas id="canvas2"></canvas><br>
