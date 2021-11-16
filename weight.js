@@ -620,30 +620,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
   StatHeader.fillText(ctx, str["kgmonth"], 5, y0 + nStatRow1Offset);
   StatHeader.fillText(ctx, str["kgweek"],  5, y0 + nStatRow2Offset);
 
-  // Рассчитываем точки помесячно и рисуем шкалу по оси Х
-  for(var m = 0; m < aMonth.length; m++){
-    // насечки на каждом 5м дне
-    for(var day = 5; day <= aMonth[m].length; day += 5){
-      var fifth_x = XScaler.Transform(MakeMonthDate(aMonth[m].number, day));
-
-      if(fifth_x < x1) continue;
-      if(fifth_x > x2) break;
-
-      xScaleStyle.fillText(ctx, day, fifth_x, y2 + 10);
-
-      vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
-    }
-
+  // Фаза 1: Рассчитываем точки помесячно и рисуем шкалу по оси Х
+  for(let m = 0; m < aMonth.length; m++){
     // Считаем среднемесячные значение (по всем точкам за конкретный месяц)
-    var s = 0, n = 0;
-    for(var j = 0; j < myDataSet.TotalDots(); j++){
+    let s = 0, n = 0;
+    for(let j = 0; j < myDataSet.TotalDots(); j++){
       if(myDataSet.X(j).IsSameMonth(aMonth[m].number)){
         n++;
         s += myDataSet.Y(j);
       }
     }
 
-    var Y = s / n;
+    let Y = n ? s / n : 0;
 
     let X = XScaler.Transform(aMonth[m].middle); // координаты середины месяца
     let Xt = aMonth[m].middle.getTime(); // время экранной середины месяца
@@ -667,21 +655,54 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
       }
     }
 
-    if(n) aMonth[m].startweight = s / n;
+    if(n) aMonth[m].startweight = s / n;   
+  }
 
+  // Фаза 2: Собственно, все пишем и рисуем
+  for(let m = 0; m < aMonth.length; m++){
     const nMonthNamePos = y0;
 
+    // насечки на каждом 5м дне
+    for(let day = 5; day <= aMonth[m].length; day += 5){
+      let fifth_x = XScaler.Transform(MakeMonthDate(aMonth[m].number, day));
+
+      if(fifth_x < x1) continue;
+      if(fifth_x > x2) break;
+
+      xScaleStyle.fillText(ctx, day, fifth_x, y2 + 10);
+
+      vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
+    }
+
     if(!m){ // Для первого месяца пишем название только в случае, 
-            // если начало данных приходится на 15е число или ранее; 
+            // если начало данных приходится на 20е число или ранее; 
             // статистика за этот месяц не считается 
       if(myDataSet.X(0).getDate() <= 20){
         let xl = x1;
         let xr = XScaler.Transform(aMonth[m + 1].firstday);
 
         MonthStyle.fillText(ctx, aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
+
+        debugger;
+
+        if(aMonth.length > 1 && myDataSet.X(0).getDate() <= 15 && aMonth[m + 1].startweight){
+          // Число дней
+          let days = (aMonth[m + 1].firstday - myDataSet.X(0)) / day_len_ms;
+          // Потеряно килограмм
+          let loss = aMonth[m + 1].startweight - myDataSet.StartWeight(nAverageWindowDays);
+          // В день терялось
+          let dailyloss = loss / days; 
+
+          // Прогноз за целый месяц
+          let monthloss = Math.round10(dailyloss * aMonth[m].length, -1);
+          let weekloss = Math.round10(dailyloss * 7, -2);           
+
+          DrawStatistics(ctx, y0, XScaler, myDataSet.X(0), aMonth[m + 1].firstday, monthloss, weekloss, 'gray');
+
+        }
       }  
     }else{ 
-      // Вывод статистики за месяц
+      // Вывод статистики за предыдущий месяц
       if(m < aMonth.length && aMonth[m - 1].startweight){
         // Различие: "потеря за месяц" = потеря за календарный месяц
         let monthloss = Math.round10(aMonth[m].startweight - aMonth[m - 1].startweight, -1);
@@ -907,7 +928,6 @@ function Update(){
   config.bDrawMinMaxBoxes = (minmax == "minmax_all" || minmax == "minmax_dots") ? true : false;
   config.bDrawMinMaxLines = (minmax == "minmax_all" || minmax == "minmax_lines") ? true : false;
 
-  debugger;
   config.bDrawMainGraph = $("select#main__selector")[0].value;
 
   config.bDrawMonthlyGraph = $("#showmonthlygraph_selector")[0].checked;
