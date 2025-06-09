@@ -2,6 +2,15 @@
 const hour_len_ms = 60 * 60 * 1000;
 const day_len_ms = 24 * hour_len_ms;
 
+// Скорее всего, подлежит удалению
+function MatchString(s, a){
+  for(let i = 0; i < a.length; i++){
+    if(str[a[i]] == s) return a[i];
+  }
+
+  return false;
+}
+
 function ZeroFill(n){
   if(n >= 10) return n;
 
@@ -9,12 +18,14 @@ function ZeroFill(n){
 }
 
 Date.prototype.daysInMonth = function() {
-  return 33 - new Date(this.getFullYear(), this.getMonth(), 33).getDate();
+  let d33 = new Date(Date.UTC(this.getUTCFullYear(), this.getUTCMonth(), 33));
+
+  return 33 - d33.getUTCDate();
 };
 
 // проверяем, находится ли дата на расстоянии window или менее от date
 Date.prototype.dateInRange = function(date, window) {
-  var window_ms = window * day_len_ms;
+  let window_ms = window * day_len_ms;
 
   if(this.getTime() > date.getTime() + window_ms) return false;
   if(this.getTime() < date.getTime() - window_ms) return false;
@@ -25,50 +36,50 @@ Date.prototype.dateInRange = function(date, window) {
 
 // Делает из даты строку вид "01.21" 
 Date.prototype.MakeMonthString = function (){
-  return ZeroFill((this.getMonth() + 1).toString()) + "." + ZeroFill((this.getFullYear() - 2000).toString());
+  return ZeroFill((this.getUTCMonth() + 1).toString()) + "." + ZeroFill((this.getUTCFullYear() - 2000).toString());
 }
 
 // Обратная функция: создать дату из строки обозначения месяца вида "01.21"
 function MakeMonthDate(s, day = 1){
-  var a = s.split('.');
+  let a = s.split('.');
 
-  var year = 2000 + parseInt(a[1], 10);
-  var month = parseInt(a[0], 10) - 1;
+  let year = 2000 + parseInt(a[1], 10);
+  let month = parseInt(a[0], 10) - 1;
 
-  return new Date(year, month, day);
+  return new Date(Date.UTC(year, month, day));
 }
 
 // проверяем, относятся ли даты к одному месяцу. 
 // Аргумент s может быть как датой, так и строкой вида "01.21" 
 Date.prototype.IsSameMonth = function (s){
-  var month = 0, year = 0;
+  let month = 0, year = 0;
 
   if (typeof s == 'string'){
     month = parseInt(s.split('.')[0], 10) - 1;
     year = 2000 + parseInt(s.split('.')[1], 10);
   }else{
-    month = s.getMonth();
-    year = s.getFullYear();
+    month = s.getUTCMonth();
+    year = s.getUTCFullYear();
   }
 
-  if(this.getMonth() == month && this.getFullYear() == year) return true;
+  if(this.getUTCMonth() == month && this.getUTCFullYear() == year) return true;
 
   return false;
 };
 
 // Возвращает строку названия месяца
 Date.prototype.GetMonthName = function (format){
-  if(format == str["format_month_full"]) return month_names[this.getMonth()];
+  if(format == "format_month_full") return month_names[this.getUTCMonth()];
 
-  if(format == str["format_month_short"]) return month_short_names[this.getMonth()];
+  if(format == "format_month_short") return month_short_names[this.getUTCMonth()];
 
-  if(format == "01") return ZeroFill(this.getMonth() + 1);
+  if(format == "format_month_digit") return ZeroFill(this.getUTCMonth() + 1);
      
-  if(format == "01/21") return ZeroFill(this.getMonth() + 1) + "/" + ZeroFill(this.getFullYear() - 2000);
+  if(format == "format_month_year_digit") return ZeroFill(this.getUTCMonth() + 1) + "/" + ZeroFill(this.getUTCFullYear() - 2000);
 
-  if(format == str["format_month_year"]) return month_short_names[this.getMonth()] + " " + ZeroFill(this.getFullYear() - 2000);
+  if(format == "format_month_year") return month_short_names[this.getUTCMonth()] + " " + ZeroFill(this.getUTCFullYear() - 2000);
 
-  return names[this.getMonth()];
+  return names[this.getUTCMonth()];
 };
 
 // Замыкание
@@ -126,11 +137,14 @@ Array.prototype.insert = function ( index, item ) {
 };
 
 // Рисуем линию, сохраняя и восстанавливая выбранный цвет и ширину в контексте
-function line(ctx, w, x1, y1, x2, y2, s = false) {
+function line(ctx, w, x1, y1, x2, y2, s = false, dash = false) {
   ctx.save();
 
   ctx.lineWidth = w;
+
   if(s) ctx.strokeStyle = s; 
+
+  if(dash) ctx.setLineDash(dash);
 
   ctx.beginPath();
 
@@ -144,76 +158,117 @@ function line(ctx, w, x1, y1, x2, y2, s = false) {
 
 // Рисуем горизонтальную линию, сохраняя и восстанавливая 
 // выбранный цвет и ширину в контексте
-function hline(ctx, w, x1, x2, y, s){
-  line(ctx, w, x1, y, x2, y, s); 
+function hline(ctx, w, x1, x2, y, s, dash){
+  line(ctx, w, x1, y, x2, y, s, dash); 
 }
 
-// Рисуем верикальную линию, сохраняя и восстанавливая 
+// Рисуем вертикальную линию, сохраняя и восстанавливая 
 // выбранный цвет и ширину в контексте
-function vline(ctx, w, x, y1, y2, s){
-  line(ctx, w, x, y1, x, y2, s); 
+function vline(ctx, w, x, y1, y2, s, dash){
+  line(ctx, w, x, y1, x, y2, s, dash); 
 }
 
-var myDataSet = {
-  weights : new Array(), 
+class CDataSet {
+  constructor(a) {
+    this.Reset();
 
-  yMax : 0,
-  yMin : 100000,
+    if(a instanceof CDataSet){ // конструктор копирования
+      this.weights = a.weights; 
 
-  scale_w_min : 60,
-  scale_w_max : 120,
+      this.Init();
+    }
 
-  initdone : false,
-  dataloaded : false,
+    if(a instanceof Array){ // конструктор из массива
 
-  GetScaleMax : function () {
-    if(!this.initdone) this.Init();
+      for(var i = 0; i < a.length / 2; i++){
+        this.weights.push(a[2 * i]);
+        this.weights.push(0);
+        this.weights.push(a[2 * i + 1]);
+      }
+
+      this.Init();
+    }
+  }
+
+  Reset () {
+    this.weights = []; 
+
+    this.yMax = 0;
+    this.yMin = 100000;
+
+    this.scale_w_min = 60;
+    this.scale_w_max = 120;
+
+    this.initdone = false;
+  }
+
+  TotalDots () { 
+    return this.weights.length / 3;
+  }
+
+  GetScaleMax () {
+    this.InitIfNeed();
 
     return this.scale_w_max;
-  },
+  }
 
-  GetScaleMin : function () {
-    if(!this.initdone) this.Init();
+  GetScaleMin () {
+    this.InitIfNeed();
 
     return this.scale_w_min;
-  },
+  }
 
-  GetMax : function () {
-    if(!this.initdone) this.Init();
+  GetMax () {
+    this.InitIfNeed();
 
     return this.yMax;
-  },
+  }
 
-  GetMin : function () {
-    if(!this.initdone) this.Init();
+  GetMin () {
+    this.InitIfNeed();
 
     return this.yMin;
-  },
+  }
 
-  TotalDots : function () { 
-    if(!this.dataloaded) this.LoadData();
+  TotalDays () { 
+    return Math.round((this.LastX().getTime() - this.X(0).getTime()) / day_len_ms);
+  }
 
-    return this.weights.length / 3;
-  },
-
-  TotalDays : function () { 
-    if(!this.dataloaded) this.LoadData();
-
-    return Math.round((this.X(this.TotalDots() - 1).getTime() - this.X(0).getTime()) / day_len_ms) - 1;
-  },
-
-  StartWeight : function (nAverageWindowDays) {
-    if(!this.dataloaded) this.LoadData();
+  StartWeight (nAverageWindowDays = nDefAverageWindowDays) {
+    // В случае, если всего две точки, или общее время на графике меньше "окна" усреднения на концах 
+    // просто вернуть вес в первой точке без усреднения
+    if(this.TotalDots() < 3 || this.TotalDays() <= nAverageWindowDays) return this.Y(0);
 
     const average_window_ms = nAverageWindowDays * day_len_ms;
 
-    var start = this.X(0).getTime();
-    var n = 0; s = 0;
-    var start_weight = 0;
+    let start = this.X(0).getTime();
+    let n = 1, s = this.Y(0);
 
-    for(var i = 0; i < this.TotalDots(); i++){
-      if(this.X(i).getTime() > start + average_window_ms){
-        start_weight = s / n, -1;
+    for(var i = 1; i < this.TotalDots(); i++){
+      if(this.X(i).getTime() > start + average_window_ms)
+        break;
+
+      n++;
+      s += this.Y(i);
+    }
+
+    let start_weight = s / n;
+    return start_weight;
+  }
+
+  EndWeight (nAverageWindowDays = nDefAverageWindowDays) {
+    // В случае, если всего две точки, или общее время на графике меньше "окна" усреднения на концах 
+    // просто вернуть вес в последней точке без усреднения
+    if(this.TotalDots() < 3 || this.TotalDays() <= nAverageWindowDays) return this.LastY(i);
+
+    const average_window_ms = nAverageWindowDays * day_len_ms;
+
+    let start = this.LastX().getTime();
+
+    let n = 1, s = this.LastY(i);
+
+    for(var i = this.TotalDots() - 2; i >= 0; i--){
+      if(this.X(i).getTime() < start - average_window_ms){
         break;
       }
 
@@ -221,86 +276,109 @@ var myDataSet = {
       s += this.Y(i);
     }
 
-    return start_weight;
-  },
-
-  EndWeight : function (nAverageWindowDays) {
-    if(!this.dataloaded) this.LoadData();
-
-    const average_window_ms = nAverageWindowDays * day_len_ms;
-
-    var start = this.X(this.TotalDots() - 1).getTime();
-    var n = 0; s = 0;
-    var end_weight = 0;
-
-    for(var i = this.TotalDots() - 1; i >= 0; i--){
-      if(this.X(i).getTime() < start - average_window_ms){
-        end_weight = s / n, -1;
-        break;
-      }
-
-      n++;
-      s += myDataSet.Y(i);
-    }
+    let end_weight = s/n; 
     return end_weight;
-  },
+  }
 
-  TotalLoss : function (nAverageWindowDays) {
-    if(!this.dataloaded) this.LoadData();
-
+  TotalLoss (nAverageWindowDays = nDefAverageWindowDays) {
     return this.EndWeight(nAverageWindowDays) - this.StartWeight(nAverageWindowDays);
-  },
+  }
 
-  X : function (i) {
-    if(!this.dataloaded) this.LoadData();
+  X (i) {
+    if(i >= this.TotalDots()) alert("CDataSet:X(",i,"): read past of array end (array size = ", this.TotalDots());
+
+    this.InitIfNeed();
 
     return this.weights[i * 3 + 1];
-  },
+  }
 
-  LastX : function (i) {
-    if(!this.dataloaded) this.LoadData();
-
+  LastX (i) {
     return this.X(this.TotalDots() - 1);
-  },
+  }
 
-  Y : function (i) {
-    if(!this.dataloaded) this.LoadData();
+  Y (i) {
+    if(i >= this.TotalDots()) alert("CDataSet:Y(",i,"): read past of array end (array size = ", this.TotalDots());
 
     return this.weights[i * 3 + 2];
-  },
+  }
 
-  LastY : function (i) {
-    if(!this.dataloaded) this.LoadData();
-
+  LastY (i) {
     return this.Y(this.TotalDots() - 1);
-  },
+  }
 
-  LoadData : function () {
-    if(this.dataloaded) return;
+  InsertPoint (day, month, year, weight) {
+    let idx = this.FindDate (day, month, year);
+    if(idx != -1) return -1;
 
-    for(var i = 0; i < myRawData.length / 2; i++){
-      this.weights.push(myRawData[2 * i]);
-      this.weights.push(0);
-      this.weights.push(myRawData[2 * i + 1]);
+    let data_txt = ZeroFill(day) + "." + ZeroFill(month) + "." + ZeroFill(year - 2000);
+    let date = new Date(Date.UTC(year, month-1, day));
+
+   
+    if(!this.TotalDots() || date > this.LastX()){
+      this.weights.push(data_txt);
+      this.weights.push(date);
+      this.weights.push(parseInt(weight, 10));
+      idx = this.TotalDots() - 1;
+    }else{
+      for(var i = 0; i < this.TotalDots(); i++){
+        if(date < this.X(i)){
+          this.weights.insert(i * 3, parseInt(weight, 10));
+          this.weights.insert(i * 3, date);
+          this.weights.insert(i * 3, data_txt);
+          idx = i;
+          debugger;
+          break;
+        }
+      }
     }
 
-    this.dataloaded = true;
-  },
+    if(idx != -1) this.ReInit();
 
-  Init : function () {
+    return idx;
+  }
+
+  FindDate (day, month, year) {
+//    if(!this.TotalDots()) return -1;
+
+    for(var i = 0; i < this.TotalDots(); i++){
+      let a = this.weights[i * 3].split('.');
+
+      let year1 = 2000 + parseInt(a[2], 10);
+      let month1 = parseInt(a[1], 10);
+      let day1 = parseInt(a[0], 10);
+
+      if(year1 == year && month1 == month && day1 == day) return i;
+    }
+
+    return -1;
+  }
+
+  InitIfNeed () {
+    if(!this.initdone) this.Init();
+  }
+
+  ReInit () {
+    this.initdone = false;
+    this.yMax = 0;
+    this.yMin = 100000;
+
+    this.scale_w_min = 60;
+    this.scale_w_max = 120;
+
+    this.Init ();
+  }
+
+  Init () {
     if(this.initdone) return;
 
     for(var i = 0; i < this.TotalDots(); i++){
-      if(i == 51) 
-        console.log(this.weights[i * 3]);
+      let a = this.weights[i * 3].split('.');
 
-      var a = this.weights[i * 3].split('.');
+      let year = 2000 + parseInt(a[2], 10);
+      let month = parseInt(a[1], 10) - 1;
+      let day = parseInt(a[0], 10);
 
-      var year = 2000 + parseInt(a[2], 10);
-      var month = parseInt(a[1], 10) - 1;
-      var day = parseInt(a[0], 10);
-
-      this.weights[i * 3 + 1] = new Date(year, month, day);
+      this.weights[i * 3 + 1] = new Date(Date.UTC(year, month, day));
 
       // Find max and min values
       if(this.Y(i) < this.yMin) this.yMin = this.Y(i);
@@ -315,7 +393,7 @@ var myDataSet = {
 
     this.initdone = true;
   }
-};
+}
 
 function Scaler(v, v_min, v_max, scr_min, scr_max){
   return (v - v_min) * (scr_max - scr_min) / (v_max - v_min);
@@ -376,6 +454,8 @@ class CTextStyler {
   }
 
 }
+
+let myDataSet = new CDataSet(myRawData);
 
 class CScaler {
   constructor(v1, v2, cmin, cmax, reversed = false) {
@@ -442,12 +522,15 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
   let keepstyle = ctx.strokeStyle;
   if(typeof StrokeStyle !== 'undefined') ctx.strokeStyle = StrokeStyle;
 
+  let keepjoin = ctx.lineJoin;
+  ctx.lineJoin = 'bevel';
+
   console.log("DrawGraph(): spline.GetCount() = ", spline.GetCount());
   console.log("DrawGraph(): spline.GetMinX() = ", spline.GetMinX());
 
   ctx.beginPath();
 
-  if(smooth){
+  if(spline.type != "spline_base"){
     let xt1 = spline.GetMinX(); // Время
     let xt2 = spline.GetMaxX();
 
@@ -482,16 +565,12 @@ function DrawGraph(ctx, spline, XScaler, YScaler, smooth = true, nWidth = 1, Str
 
   ctx.stroke();
 
+  ctx.lineJoin = keepjoin;
   ctx.lineWidth = keepwidth;
   ctx.strokeStyle = keepstyle;
 }
 
 function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
-  if(myDataSet.TotalDots() < 2){
-    alert("Нечего рисовать. Нужно минимум две точки.");
-    return;
-  }
-
   let dmin = myDataSet.X(0).getTime();   
   let dmax = myDataSet.LastX().getTime();
 
@@ -506,19 +585,31 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
     hline(ctx, 0.5, x1, x2, YScaler.Transform(myDataSet.GetMin()), "green");
   }
 
-  // Объект сплайна создается в любом случае, даже если рисуем без сглаживания!
-  var spline = config.nSmoothType == 1 ? new AkimaSpline() : new CubicSpline();
+  // Если сглаживание не задано - используем базовый объект 
+  let spline = new Spline; 
 
-  // Сначала рисуем ломаную через все точки 
-  for(var x = 0; x < myDataSet.TotalDots(); x++)
-    spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
+  switch(config.sSmoothType){
+    case "spline_akima": spline = new AkimaSpline(); break;
+    case "spline_cubic": spline = new CubicSpline(); break;
+    case "spline_hermit": spline = new MonotonicCubicSpline(); break;
+    case "spline_catmullrom": spline = new CatmullRomSpline(); break;
+    default: break;
+  }
 
-  DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nDayWidth);
+  console.log("spline type", spline.type);
 
-  spline.Dump();
+  if(config.bDrawMainGraph == "main_lines" || config.bDrawMainGraph == "main_all"){
+    // Сначала рисуем ломаную через все точки 
+    for(var x = 0; x < myDataSet.TotalDots(); x++)
+      spline.AddValue(myDataSet.X(x).getTime(), myDataSet.Y(x));
+
+    DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nDayWidth);
+
+    spline.Dump();
+  }
 
   // Теперь сами точки, если необходимо, квадратиками
-  if(nDrawDots){
+  if(config.bDrawMainGraph == "main_dots" || config.bDrawMainGraph == "main_all"){
     for(var x = 0; x < myDataSet.TotalDots(); x++){
       var xc = XScaler.Transform(myDataSet.X(x));
       var yc = YScaler.Transform(myDataSet.Y(x));
@@ -542,27 +633,34 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
     const week_len_ms = config.nMeshSize * day_len_ms;
     let week_start = dmin;
 
-    let s = 0, n = 0;
+    let summWeek = 0, n = 0;
 
     for(let i7 = 0; i7 < myDataSet.TotalDots(); i7++){
 
     // +1 час = компенсация за перевод часов на летнее время
       if(myDataSet.X(i7).getTime() + hour_len_ms >= week_start + week_len_ms){
 //      console.log("точка", ws_d.toDateString());
-        var Y = s / n;
+        var Y = summWeek / n;
         var X = week_start + week_len_ms / 2;
 
-        s = 0;
+        if(n)
+          spline.AddValue(X, Y);
+
+        summWeek = 0;
         n = 0;
         week_start += week_len_ms;
 
-        spline.AddValue(X, Y);
+        // Хак для случая пустой недели, чтобы не дублировать проверки 
+        i7--;
+        continue;
       }
 
-      s += myDataSet.Y(i7);
+      summWeek += myDataSet.Y(i7);
       n++; 
     }
 
+    console.log("Weekly spline done");
+    spline.Dump();
     DrawGraph(ctx, spline, XScaler, YScaler, config.nSmoothType, nWeekWidth, sWeekStyle);
   }
 
@@ -595,30 +693,18 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
   StatHeader.fillText(ctx, str["kgmonth"], 5, y0 + nStatRow1Offset);
   StatHeader.fillText(ctx, str["kgweek"],  5, y0 + nStatRow2Offset);
 
-  // Рассчитываем точки помесячно и рисуем шкалу по оси Х
-  for(var m = 0; m < aMonth.length; m++){
-    // насечки на каждом 5м дне
-    for(var day = 5; day <= aMonth[m].length; day += 5){
-      var fifth_x = XScaler.Transform(MakeMonthDate(aMonth[m].number, day));
-
-      if(fifth_x < x1) continue;
-      if(fifth_x > x2) break;
-
-      xScaleStyle.fillText(ctx, day, fifth_x, y2 + 10);
-
-      vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
-    }
-
+  // Фаза 1: Рассчитываем точки помесячно и рисуем шкалу по оси Х
+  for(let m = 0; m < aMonth.length; m++){
     // Считаем среднемесячные значение (по всем точкам за конкретный месяц)
-    var s = 0, n = 0;
-    for(var j = 0; j < myDataSet.TotalDots(); j++){
+    let s = 0, n = 0;
+    for(let j = 0; j < myDataSet.TotalDots(); j++){
       if(myDataSet.X(j).IsSameMonth(aMonth[m].number)){
         n++;
         s += myDataSet.Y(j);
       }
     }
 
-    var Y = s / n;
+    let Y = n ? s / n : 0;
 
     let X = XScaler.Transform(aMonth[m].middle); // координаты середины месяца
     let Xt = aMonth[m].middle.getTime(); // время экранной середины месяца
@@ -642,21 +728,52 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
       }
     }
 
-    if(n) aMonth[m].startweight = s / n;
+    if(n) aMonth[m].startweight = s / n;   
+  }
 
+  // Фаза 2: Собственно, все пишем и рисуем
+  for(let m = 0; m < aMonth.length; m++){
     const nMonthNamePos = y0;
 
+    // насечки на каждом 5м дне
+    for(let day = 5; day <= aMonth[m].length; day += 5){
+      let fifth_x = XScaler.Transform(MakeMonthDate(aMonth[m].number, day));
+
+      if(fifth_x < x1) continue;
+      if(fifth_x > x2) break;
+
+      xScaleStyle.fillText(ctx, day, fifth_x, y2 + 10);
+
+      vline(ctx, 1, fifth_x, y2 - 2, y2 + 2);
+    }
+
     if(!m){ // Для первого месяца пишем название только в случае, 
-            // если начало данных приходится на 15е число или ранее; 
+            // если начало данных приходится на 20е число или ранее; 
             // статистика за этот месяц не считается 
-      if(myDataSet.X(0).getDate() <= 20){
+      if(myDataSet.X(0).getUTCDate() <= 20){
         let xl = x1;
         let xr = XScaler.Transform(aMonth[m + 1].firstday);
 
         MonthStyle.fillText(ctx, aMonth[m].name, (xr + xl) / 2, nMonthNamePos);
+
+        if(aMonth.length > 1 && myDataSet.X(0).getUTCDate() <= 15 && aMonth[m + 1].startweight){
+          // Число дней
+          let days = (aMonth[m + 1].firstday - myDataSet.X(0)) / day_len_ms;
+          // Потеряно килограмм
+          let loss = aMonth[m + 1].startweight - myDataSet.StartWeight(nDefAverageWindowDays);
+          // В день терялось
+          let dailyloss = loss / days; 
+
+          // Прогноз за целый месяц
+          let monthloss = Math.round10(dailyloss * aMonth[m].length, -1);
+          let weekloss = Math.round10(dailyloss * 7, -2);           
+
+          DrawStatistics(ctx, y0, XScaler, myDataSet.X(0), aMonth[m + 1].firstday, monthloss, weekloss, 'gray');
+
+        }
       }  
     }else{ 
-      // Вывод статистики за месяц
+      // Вывод статистики за предыдущий месяц
       if(m < aMonth.length && aMonth[m - 1].startweight){
         // Различие: "потеря за месяц" = потеря за календарный месяц
         let monthloss = Math.round10(aMonth[m].startweight - aMonth[m - 1].startweight, -1);
@@ -673,7 +790,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
       }
 
       // Название пишем для следущего месяца и только для того случая, когда последняя точка это 15 число или далее
-      if(m + 1 < aMonth.length || myDataSet.LastX().getDate() > 15){
+      if(m + 1 < aMonth.length || myDataSet.LastX().getUTCDate() > 15){
         let xl = XScaler.Transform(aMonth[m].firstday);
         let xr = (m + 1 < aMonth.length) ? XScaler.Transform(aMonth[m + 1].firstday) : x2;
 
@@ -684,7 +801,7 @@ function DrawSmart(ctx, x1, y1, x2, y2, y0, config){
           // Число дней
           let days = (myDataSet.LastX() - aMonth[m].firstday) / day_len_ms;
           // Потеряно килограмм
-          let loss = myDataSet.EndWeight(nAverageWindowDays) - aMonth[m].startweight;
+          let loss = myDataSet.EndWeight(nDefAverageWindowDays) - aMonth[m].startweight;
           // В день терялось
           let dailyloss = loss / days; 
 
@@ -752,8 +869,8 @@ function DrawRegular(ctx, x1, y1, x2, y2){
 }
 
 function Draw(config, method, id){
-  var canvas = document.getElementById(id);
-  var ctx = canvas.getContext('2d');
+  let canvas = document.getElementById(id);
+  let ctx = canvas.getContext('2d');
 
   canvas.width = config.width;
   canvas.height = config.height;
@@ -762,83 +879,130 @@ function Draw(config, method, id){
   ctx.clearRect(0, 0, canvas.width, canvas.height); // clear canvas
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
+  // Если точек мало - ничего не рисуем, пишем сообщение; размер шрифта подбираем максимально возможный
+  if(myDataSet.TotalDots() < 2){
+    let strFont1 = 'bold ';
+    let strFont2 = 'px serif';
+    let nFontSize = 384;
+    let ErrorStyle = new CTextStyler(strFont1 + nFontSize + strFont2, 'red', 'center', 'middle', 2, 2, 2, "rgba(0, 0, 63, 0.3)");
+    let txtError = str["error_need_more_dots"];
+
+    for(;;){
+      ErrorStyle.font = strFont1 + nFontSize + strFont2;
+      let sizeError = ErrorStyle.measureText(ctx, txtError);
+     // console.log("ErrorStyle.font = ", ErrorStyle.font, " sizeError.width = ", sizeError.width, 
+     //             " canvas.width = ", canvas.width, " sizeError.height = ", sizeError.height, 
+     //             " canvas.height = ", canvas.height, sizeError)
+      if(sizeError.width > canvas.width || sizeError.height > canvas.height){
+        nFontSize /= 2;
+      }else
+        break;
+    }
+
+    ErrorStyle.fillText(ctx, txtError, canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
   const vborder = 48;
   const topborder = 86, bottomborder = 32;
 
-  var x1 = vborder, x2 = canvas.width - vborder;
-  var y0 = topborder, y2 = canvas.height - bottomborder;
+  let x1 = vborder, x2 = canvas.width - vborder;
+  let y0 = topborder, y2 = canvas.height - bottomborder;
 
   let y1 = y0 + 72;
 
-  var column = (x2 - x1) / (myDataSet.TotalDots() + 1);
+  let column = (x2 - x1) / (myDataSet.TotalDots() + 1);
 
-  let maxtext = str["weight_max"]; // "максимум, кг: ",
-  let mintext = str["weight_min"]; // "минимум, кг: ", 
+  // -----------------------------------------------
+  // выводим статистику и образцы линий над графиком 
+  // -----------------------------------------------
 
   const textstartx = 10;
   const textstarty = 20;
-  const textline = 20;
 
-  var textendx = canvas.width - textstartx;
+  let textendx = canvas.width - textstartx;
 
-  let text = LegendStyleL.measureText(ctx, maxtext);
-  let second_col_x = textstartx + text.width;
+  // Межстрочное расстояние
+  const nLineHeight = 20;
 
-  LegendStyleL.fillText(ctx, maxtext, textstartx, textstarty);
+
+  // -----------------------------------------------
+  // выводим максимальный, минимальный вес, и общую потерю
+
+  let txtMax = str["weight_max"]; // "максимум, кг: ",
+  let txtMin = str["weight_min"]; // "минимум, кг: ", 
+
+  // Вычисляем максимальную ширину подписей для выравнивания значений
+  let sizeMaxText = LegendStyleL.measureText(ctx, txtMax);
+  let sizeMinText = LegendStyleL.measureText(ctx, txtMin);
+  let nCaptionWidth = Math.max(sizeMaxText.width, sizeMinText.width);
+
+  let second_col_x = textstartx + nCaptionWidth;
+
+  // Выводим максимальный и минимальный вес - без усреднения!
+  LegendStyleL.fillText(ctx, txtMax, textstartx, textstarty);
   LegendStyleL.fillText(ctx, myDataSet.GetMax(), second_col_x, textstarty);
 
-  LegendStyleL.fillText(ctx, mintext, textstartx, textstarty + textline);
-  LegendStyleL.fillText(ctx, myDataSet.GetMin(), second_col_x, textstarty + textline);
+  LegendStyleL.fillText(ctx, txtMin, textstartx, textstarty + nLineHeight);
+  LegendStyleL.fillText(ctx, myDataSet.GetMin(), second_col_x, textstarty + nLineHeight);
 
-  var total_loss = myDataSet.TotalLoss(nAverageWindowDays);
+  // Вычисляем общую потерю веса (разница между усреднеными за nDefAverageWindowDays 
+  // начальным и конечным весом)
+  let total_loss = myDataSet.TotalLoss(nDefAverageWindowDays);
 
   let txtLossTotal = str["weight_loss_total"]; // "суммарно, кг: " 
   let txtLossFor   = str["weight_loss_for"];   // " за "
   let txtLossDays  = str["weight_loss_days"];  // " дней",
 
   LegendStyleL.fillText(ctx, txtLossTotal + Math.round10(total_loss, -1) + txtLossFor + 
-               myDataSet.TotalDays() + txtLossDays, textstartx, textstarty + 2 * textline);
+               myDataSet.TotalDays() + txtLossDays, textstartx, textstarty + 2 * nLineHeight);
 
-//  ctx.textAlign = 'center';
-//  ctx.fillText("Метод: " + method, w / 2, textstarty);
 
-  const samplewidth = 20;
+  // -----------------------------------------------
+  // рисуем образцы разных линий по центру
+
+  const nLineSampleWidth = 20;
 
   let dailytext = str["graph_all_points"]; // "все точки",
   let monthlytext = str["graph_month_average"]; // "усредненный",
   let weeklytext = str["graph_averaged"]; //"среднемесячный",
 
   let mtext = ctx.measureText(monthlytext);
-  let centerwidth = samplewidth + mtext.width;
-
-  ctx.textAlign = 'left';
+  let centerwidth = nLineSampleWidth + mtext.width;
 
   let centerleft = canvas.width/2 - centerwidth/2;
 
-  hline(ctx, nDayWidth, centerleft, centerleft + samplewidth - 5, textstarty, sDayStyle);
-  LegendStyleL.fillText(ctx, dailytext, centerleft + samplewidth, textstarty);
+  hline(ctx, nDayWidth, centerleft, centerleft + nLineSampleWidth - 5, textstarty, sDayStyle);
+  LegendStyleL.fillText(ctx, dailytext, centerleft + nLineSampleWidth, textstarty);
 
   if(config.nMeshSize){
-    hline(ctx, nWeekWidth, centerleft, centerleft + samplewidth - 5, textstarty + textline, sWeekStyle);
-    LegendStyleL.fillText(ctx, weeklytext, centerleft + samplewidth, textstarty + textline);
+    hline(ctx, nWeekWidth, centerleft, centerleft + nLineSampleWidth - 5, textstarty + nLineHeight, sWeekStyle);
+    LegendStyleL.fillText(ctx, weeklytext, centerleft + nLineSampleWidth, textstarty + nLineHeight);
   }
 
   if(config.bDrawMonthlyGraph){
-    hline(ctx, nMonthWidth, centerleft, centerleft + samplewidth - 5, textstarty + 2 * textline, sMonthStyle);
-    LegendStyleL.fillText(ctx, monthlytext, centerleft + samplewidth, textstarty + 2 * textline);
+    hline(ctx, nMonthWidth, centerleft, centerleft + nLineSampleWidth - 5, textstarty + 2 * nLineHeight, sMonthStyle);
+    LegendStyleL.fillText(ctx, monthlytext, centerleft + nLineSampleWidth, textstarty + 2 * nLineHeight);
   }
+
+  if(1){
+    console.log("Draw(): TotalDays() = ", myDataSet.TotalDays(), "TotalDots() = ", myDataSet.TotalDots());
+  }
+
+  // -----------------------------------------------
+  // справа выводим срежднемесячное,"за неделю" и среднесуточная потеря веса  
 
   var daily_loss = total_loss / myDataSet.TotalDays();
 
-  var month_days = (365 * 3 + 366) / (4 * 12);
+  var month_days = (365 * 3 + 366) / (4 * 12); // 
 
   let txtAverageDay   = str["weight_loss_average_day"]; // "В среднем за сутки ",
   let txtAverageWeek  = str["weight_loss_average_week"]; // "В среднем за неделю ",
   let txtAverageMonth = str["weight_loss_average_month"]; // "В среднем за месяц ",
 
   LegendStyleR.fillText(ctx, txtAverageDay + Math.round10(daily_loss * 1000, -1) + " " + str["g"], textendx, textstarty);
-  LegendStyleR.fillText(ctx, txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + textline);
-  LegendStyleR.fillText(ctx, txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * textline);
+  LegendStyleR.fillText(ctx, txtAverageWeek + Math.round10(daily_loss * 7, -2) + " " + str["kg"], textendx, textstarty + nLineHeight);
+  LegendStyleR.fillText(ctx, txtAverageMonth + Math.round10(daily_loss * month_days, -1) + " " + str["kg"], textendx, textstarty + 2 * nLineHeight);
 
   // Главные оси 
   vline(ctx, 2, x1, y1, y2);
@@ -855,6 +1019,8 @@ function Draw(config, method, id){
 
     if(j % 5 == 0)
       hline(ctx, 0.5, x1 + 2, x2, y);
+    else
+      hline(ctx, 0.2, x1 + 2, x2, y, ctx.strokeStyle, [1, 5]);
   }
 
   x1 += column;
@@ -869,8 +1035,6 @@ function Draw(config, method, id){
 }
 
 function Update(){
-  let no = str["none"];;
-
   let config = {};
 
   let size_raw = $("#size_selector")[0].value.split(' ');
@@ -878,24 +1042,26 @@ function Update(){
   config.height = parseInt(size_raw[2], 10);
 
   config.bShowSundays = $("#showsundays_selector")[0].checked;
-  config.bDrawMinMaxBoxes= $("#showminmaxdots_selector")[0].checked;
-  config.bDrawMinMaxLines = $("#showminmaxlines_selector")[0].checked;
+
+  let minmax = $("select#minmax_selector")[0].value;
+  config.bDrawMinMaxBoxes = (minmax == "minmax_all" || minmax == "minmax_dots") ? true : false;
+  config.bDrawMinMaxLines = (minmax == "minmax_all" || minmax == "minmax_lines") ? true : false;
+
+  config.bDrawMainGraph = $("select#main__selector")[0].value;
 
   config.bDrawMonthlyGraph = $("#showmonthlygraph_selector")[0].checked;
 
   config.sMonthFormat = $("#monthlabels_selector")[0].value;
 
-  let smooth = $("#smoothing_selector")[0].value;
-  config.nSmoothType = (smooth == str["spline_akima"]) ? 1 :(smooth == str["spline_cubic"]) ? 2 : false;
+  config.sSmoothType = $("#smoothing_selector")[0].value;
 
-  let m = $("#mesh_selector")[0].value;
-  config.nMeshSize = m == no ? m = 0 : m;
-
+  config.nMeshSize = parseInt($("#mesh_selector").val() || 0, 10);
 
   console.log("Update():", "config = ", config);
 
   Draw(config, 'smart', 'canvas2');
 //  Draw(800, 600, 'regular', 'canvas3');
+
 }
 
 $("#mesh_selector")[0].value = nDefaultWeekDays;
@@ -905,9 +1071,85 @@ $("#mesh_selector").bind( "change", function(e) { Update(); });
 $("#showsundays_selector").bind( "change", function(e) { Update(); });
 $("#smoothing_selector").bind( "change", function(e) { Update(); });
 $("#monthlabels_selector").bind( "change", function(e) { Update(); });
-$("#showminmaxdots_selector").bind( "change", function(e) { Update(); });
-$("#showminmaxlines_selector").bind( "change", function(e) { Update(); });
+
+$("#minmax_selector").bind( "change", function(e) { Update(); });
+$("#main__selector").bind( "change", function(e) { Update(); });
 
 $("#showmonthlygraph_selector").bind( "change", function(e) { Update(); });
+
+// Удаление всех данных 
+$("#data_reset").bind( "click", function(e) { 
+  if(confirm(str["warn_delete_data"])){
+    myDataSet.Reset(); 
+    Update(); 
+  }
+});
+
+// Загрузка демонстрационных данных из data.js 
+$("#data_demo").bind("click", function(e) { 
+  if(confirm(str["warn_load_sample_data"])){
+    myDataSet = new CDataSet(myRawData);
+    Update(); 
+  }
+});
+
+// Добавление замера веса 
+$("#data_add").bind("click", function(e) { 
+  let d = $("input#data_add_date")[0].value;
+  if(d == ""){
+    alert(str["error_no_date_entered"]);
+    return;
+  }
+
+  let weight = $("input#data_add_weight")[0].value;
+  if(weight == ""){
+    alert(str["error_no_weight_entered"]);
+    return;
+  }
+
+  let a = d.split('-');
+
+  let year = parseInt(a[0], 10);
+  let month = parseInt(a[1], 10);
+  let day = parseInt(a[2], 10);
+
+  weight = parseInt(weight, 10);
+
+  let data_rus = ZeroFill(day) + "." + ZeroFill(month) + "." + year;
+
+  let idx = myDataSet.FindDate(day, month, year);
+
+  if(idx != -1){
+    alert("Ошибка ввода: для даты " + data_rus + " уже введен вес " + myDataSet.Y(idx));
+    return;
+  }
+
+  if(myDataSet.TotalDots() && (weight > myDataSet.GetMax() + 10 || weight < myDataSet.GetMin() - 10))
+    if(!confirm("Подсказка: вводимый вес более чем на 10 кг отличается от ранее введенных значений. Все равно добавить?"))
+      return;
+
+  let data = new Date(Date.UTC(year, month-1, day)); 
+  if(myDataSet.TotalDots() && (data.getTime() < myDataSet.X(0).getTime() - day_len_ms * 30 || data.getTime() > myDataSet.LastX().getTime() + day_len_ms * 30)){
+/*
+    let xmin = myDataSet.X(0);
+    let xmax = myDataSet.LastX();
+
+    let t0 = data.getTime();
+    let t1 = myDataSet.X(0).getTime();
+    let t2 = myDataSet.LastX().getTime();
+
+
+    debugger;*/
+    if(!confirm("Подсказка: вводимая дата более чем на 30 дней отличается от ранее введенных. Все равно добавить?"))
+      return;
+  }
+
+  myDataSet.InsertPoint(day, month, year, weight);
+
+  if(myDataSet.TotalDots() == 1)
+    alert("Подсказка: введите еще одну точку для отображения графика");
+
+  Update(); 
+});
 
 Update();

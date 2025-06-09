@@ -9,16 +9,9 @@ let month_short_names = [
 ];
 
 let str = {
-  format_month_full : "январь",
-  format_month_short : "янв",
-  format_month_year : "янв 21",
-
   graph_all_points : "все точки",
   graph_averaged   : "усредненный",
   graph_month_average: "среднемесячный",
-
-  spline_akima: "Сплайн Akima",
-  spline_cubic: "Кубический сплайн",
 
   weight_max: "максимум, кг: ",
   weight_min: "минимум, кг: ",
@@ -30,6 +23,15 @@ let str = {
   weight_loss_average_day: "В среднем за сутки ",
   weight_loss_average_week: "В среднем за неделю ",
   weight_loss_average_month: "В среднем за месяц ",
+
+  error_need_more_dots: "Нечего рисовать: введите более двух точек.",
+  error_no_date_entered: "Ошибка ввода: не выбрана дата для добавления веса!",
+  error_no_weight_entered: "Ошибка ввода: введите вес!",
+
+
+  warn_delete_data: "Удалить все данные? Данное действие отменить невозможно",
+  warn_load_sample_data: "Загрузить демонстрационные данные? Данное действие отменить невозможно",
+
 
   none: "нет",
   kgweek: "кг/нед",

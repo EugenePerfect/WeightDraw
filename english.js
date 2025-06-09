@@ -9,16 +9,9 @@ var month_short_names = [
 ];
 
 let str = {
-  format_month_full : "January",
-  format_month_short : "Jan",
-  format_month_year : "Jan 21",
-
   graph_all_points : "all points",
   graph_averaged   : "averaged",
   graph_month_average: "monthly averaged",
-
-  spline_akima: "Akima spline",
-  spline_cubic: "Cubic spline",
 
   weight_max: "maximal weight, kg: ",
   weight_min: "minimal weight, kg: ",
@@ -30,6 +23,8 @@ let str = {
   weight_loss_average_day: "average loss per day ",
   weight_loss_average_week: "average loss per week ",
   weight_loss_average_month: "average loss per month ",
+
+  error_need_more_dots: "Nothing to draw: enter more data.",
 
   none: "none",
   kgweek: "kg/wk",

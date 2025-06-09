@@ -1,7 +1,6 @@
 // Ширина и цвет линии "все точки"
 const nDayWidth = 2;
 const sDayStyle = 'blue'; 
-const nDrawDots = true;
 
 // Ширина и цвет линии "среднемесячная"
 const nMonthWidth = 9;
@@ -16,7 +15,7 @@ const sWeekStyle = 'rgba(65, 65, 255, 0.3)';
 const nDefaultWeekDays = 5;
 
 // Количество дней, которые учитываются в усреднении "старта" и "конца"
-const nAverageWindowDays = 5;
+const nDefAverageWindowDays = 5;
 
 // Размах "окна" в днях, за сколько дней до и после конца месяца учитывается вес 
 // для подсчетов потери веса за месяц и за неделю (помесячная статистика сверху графика) 

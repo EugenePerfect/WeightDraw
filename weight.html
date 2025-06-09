@@ -33,42 +33,54 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Усереднення: <select id="mesh_selector">
-      <option>немає</option>
-      <option>3</option>
-      <option>5</option>
-      <option selected>7</option>
-      <option>9</option>
-      <option>11</option>
-      <option>13</option>
-      <option>15</option>
+      <option value="0">немає</option>
+      <option value="3">3</option>
+      <option value="5" selected>5</option>
+      <option value="7">7</option>
+      <option value="9">9</option>
+      <option value="11">11</option>
+      <option value="13">13</option>
+      <option value="15">15</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Апроксимація: <select id="smoothing_selector">
-      <option selected>немає</option>
-      <option>Сплайн Akima</option>
-      <option>Кубічний сплайн</option>
+      <option selected value="spline_base">лінійна</option>
+      <option value="spline_akima">Сплайн Akima</option>
+      <option value="spline_cubic">Кубічний сплайн</option>
+      <option value="spline_hermit">Сплайн Ерміта</option>
+      <option value="spline_catmullrom">Сплайн Катмулла-Рома</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
 
     Мітки місяців: <select id="monthlabels_selector">
-      <option>січень</option>
-      <option selected>січ</option>
-      <option>січ 21</option>
-      <option>01/21</option>
-      <option>01</option>
+      <option value="format_month_full"          >січень</option>
+      <option value="format_month_short" selected>січ</option>
+      <option value="format_month_year"          >січ 21</option>
+      <option value="format_month_year_digit"    >01/21</option>
+      <option value="format_month_digit"         >01</option>
     </select>
   </div>
 
   <p> 
     Малювати: <label>неділі <input type="checkbox" id="showsundays_selector" ></label>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>точки мін. та макс. ваги<input type="checkbox" id="showminmaxdots_selector" checked></label>
+    Найменша та найбільша вага: <select id="minmax_selector">
+      <option value="minmax_none"          >не відображати</option>
+      <option value="minmax_dots"          >точки</option>
+      <option value="minmax_lines"         >лінії</option>
+      <option value="minmax_all"  selected >точки та лінії</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>лінії мін. ти макс. ваги <input type="checkbox" id="showminmaxlines_selector" checked></label>
+    Основний графік: <select id="main__selector">
+      <option value="main_none"          >не відображати</option>
+      <option value="main_dots"          >точки</option>         
+      <option value="main_lines"         >лінії</option>         
+      <option value="main_all"  selected >точки та лінії</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>графік по средньомісячним точкам <input type="checkbox" id="showmonthlygraph_selector" checked></label>
+    <label>графік по средньомісячним<input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>
 
   <canvas id="canvas2"></canvas><br>

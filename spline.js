@@ -1,13 +1,21 @@
-﻿class Spline {
-  constructor(){
+﻿let aSplines = [ "spline_base", "spline_akima", "spline_cubic", "spline_hermit", "spline_catmullrom"];
+
+class Spline {
+  Reset(){
     this._x = [];
     this._y = [];
     this._calculated = false;
   }
 
+  constructor(){
+    this.Reset();
+  }
+
   IsOK () { return (this._x.length > 1 && this._x.length == this._y.length) ? true : false; }
 
   get length () { return this._x.length; }
+
+  get type () { return "spline_base"; }
 
   GetCount () { return this.length; }
 
@@ -59,18 +67,12 @@
     console.log("_y", this._y);
   }
 
-  Reset(){
-    this._x = [];
-    this._y = [];
-    this._calculated = false;
-  }
-
   CalculateCoeffs (){
     alert("Spline():CalculateCoeffs(): called base method! Need to be realized in derived class");
   }
 
-  Approximate (cx){
-    alert("Spline():Approximate(): called base method! Need to be realized in derived class");
+  ApproximateLow (cx){
+    alert("Spline():ApproximateLow(): called base method! Need to be realized in derived class");
   }
 
   LinearApproximate (cx){
@@ -84,6 +86,27 @@
       return this._y[0] + m * (cx - this._x[0]);
     }
   }
+
+  // Общий код проверок до вызова специфической аппроксимации
+  Approximate (cx){
+    if(this.length < 2) return Number.POSITIVE_INFINITY;
+
+    // При двух точках - используем линейную аппрокимацию
+    if(this.length == 2) return this.LinearApproximate(cx);
+
+    // Возвратить "бесконечность", если вне интервала аппроксимации
+    if(cx < this.GetMinX() || cx > this.GetMaxX())
+      return Number.POSITIVE_INFINITY;
+
+    // При точном соответвии cx одной из "входных" абцисс - просто возвращаем соответствующую ординату
+    for(let i = 0; i < this.length; i++)
+      if(Math.abs(cx - this._x[i]) < Number.EPSILON) 
+        return this._y[i];
+
+    this.CalculateCoeffs();
+
+    return this.ApproximateLow(cx);
+  }
 }
 
 // Реализацию сплайна Акимы я портировал из C-кода программы для debian aspline Дэвида Фрея.
@@ -92,18 +115,6 @@
 class AkimaSpline extends Spline {
   constructor(){
     super();
-
-    this._vx = [];
-    this._vy = [];
-
-    this._dx = [];
-    this._dy = [];
-
-    this._m = [];
-    this._t = [];
-
-    this._C = [];
-    this._D = [];
   }
 
   Reset(){
@@ -122,6 +133,8 @@ class AkimaSpline extends Spline {
     this._D = [];
   }
 
+  get type () { return "spline_akima"; }
+
   Dump(){
     super.Dump();
     console.log("AkimaSpline:_vx", this._vx);
@@ -137,22 +150,13 @@ class AkimaSpline extends Spline {
     console.log("AkimaSpline:_t", this._D);
   }
 
-  Approximate (cx){
-    if(this.length < 2) return Number.POSITIVE_INFINITY;
-
-    if(this.length == 2) return super.LinearApproximate(cx);
-
-    this.CalculateCoeffs();
-
-    // Возвратить "бесконечность", если вне интервала аппроксимации
-    if(cx < this.GetMinX() || cx > this.GetMaxX())
-      return Number.POSITIVE_INFINITY;
-
+  ApproximateLow (cx){
     var p = 2;
 
     for(; p < this._vx.length - 2; p++){
-      if(Math.abs(cx - this._vx[p]) < Number.EPSILON) /* strict match */
-        return this._vy[p];
+// Этот код уже не нужен, т.к. такая проверка проводится в базовом классе
+//      if(Math.abs(cx - this._vx[p]) < Number.EPSILON) /* strict match */
+//        return this._vy[p];
 
       if(this._vx[p] > cx) 
         break;
@@ -264,12 +268,6 @@ class AkimaSpline extends Spline {
 class CubicSpline extends Spline {
   constructor(){
     super();
-
-    this.x = [];
-    this._a = [];
-    this._b = [];
-    this._c = [];
-    this._d = [];
   }
 
   Reset(){
@@ -291,17 +289,9 @@ class CubicSpline extends Spline {
     console.log("CubicSpline:_d", this._d);
   }
 
-  Approximate(newX){
-    if(this.length < 2) return Number.POSITIVE_INFINITY;
+  get type () { return "spline_cubic"; }
 
-    if(this.length == 2) return super.LinearApproximate(newX);
-
-    this.CalculateCoeffs();
-
-    // Возвратить "бесконечность", если вне интервала аппроксимации
-    if(newX < this.GetMinX() || newX > this.GetMaxX())
-      return Number.POSITIVE_INFINITY;
-
+  ApproximateLow(newX){
     var _ref, i;
     for (i = _ref = this.x.length - 1; (_ref <= 0 ? i <= 0 : i >= 0); (_ref <= 0 ? i += 1 : i -= 1)) {
       if (this.x[i] <= newX) {
@@ -383,5 +373,204 @@ class CubicSpline extends Spline {
 //    debugger;
 
     return 2;
+  }
+}
+
+
+class MonotonicCubicSpline extends Spline {
+  constructor(){
+    super();
+  }
+
+  Reset(){
+    super.Reset();
+
+    this._m = [];
+  }
+
+  Dump(){
+    super.Dump();
+    console.log("MonotonicCubicSpline: _m", this._m);
+  }
+
+  get type () { return "spline_hermit"; }
+
+  ApproximateLow(x){
+    var i, _ref;
+    for (i = _ref = this._x.length - 2; (_ref <= 0 ? i <= 0 : i >= 0); (_ref <= 0 ? i += 1 : i -= 1)) {      
+      if (this._x[i] <= x) 
+        break;
+    }
+
+    let h = this._x[i + 1] - this._x[i];
+
+    let t = (x - this._x[i]) / h;
+    let t2 = Math.pow(t, 2);
+    let t3 = Math.pow(t, 3);
+
+    let h00 = 2 * t3 - 3 * t2 + 1;
+    let h10 = t3 - 2 * t2 + t;
+    let h01 = -2 * t3 + 3 * t2;
+    let h11 = t3 - t2;
+
+    return h00 * this._y[i] + h10 * h * this._m[i] + h01 * this._y[i + 1] + h11 * h * this._m[i + 1];
+  }
+
+  // Коды возврата:
+  //  2 коэффициенты просчитаны 
+  //  1 коэффициенты уже ранее просчитаны 
+  // -1 размеры входных массивов не совпадают
+  // -2 число точек на входе < 3
+
+  CalculateCoeffs(){
+    if(this._calculated) return 1;
+
+    if(this._x.length != this._y.length){ 
+      console.error("CubicSpline::CalcCoefficients(): размеры входных массивов не совпадают: _x.length: ", this._x.length, ", _y.length: ", this._y.length); 
+      return -1;
+    }
+
+    if(this.length < 3){ 
+      console.error("CubicSpline::CalcCoefficients(): размеры входного массива < 3: ", this.length); 
+      return -2;
+    }
+
+    let x = this._x;
+    let y = this._y;
+
+    var i, _i, _j, _len, _len2, _ref, _ref2, _ref3, _ref4;
+
+    let n = x.length;
+
+    let delta = [];
+    let m = [];
+
+    let alpha = [];
+    let beta = [];
+    let dist = [];
+    let tau = [];
+
+    for (i = 0, _ref = n - 1; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+      delta[i] = (y[i + 1] - y[i]) / (x[i + 1] - x[i]);
+      if (i > 0) {
+        m[i] = (delta[i - 1] + delta[i]) / 2;          
+      }
+    }
+
+    m[0] = delta[0];
+    m[n - 1] = delta[n - 2];
+
+    let to_fix = [];
+
+    for (i = 0, _ref2 = n - 1; (0 <= _ref2 ? i < _ref2 : i > _ref2); (0 <= _ref2 ? i += 1 : i -= 1)) {
+      if (delta[i] === 0) {
+        to_fix.push(i);
+      }
+    }
+
+    for (_i = 0, _len = to_fix.length; _i < _len; _i++) {
+      i = to_fix[_i];
+      m[i] = m[i + 1] = 0;
+    }
+
+    for (i = 0, _ref3 = n - 1; (0 <= _ref3 ? i < _ref3 : i > _ref3); (0 <= _ref3 ? i += 1 : i -= 1)) {
+      alpha[i] = m[i] / delta[i];
+      beta[i] = m[i + 1] / delta[i];
+      dist[i] = Math.pow(alpha[i], 2) + Math.pow(beta[i], 2);
+      tau[i] = 3 / Math.sqrt(dist[i]);
+    }
+
+    to_fix = [];
+    for (i = 0, _ref4 = n - 1; (0 <= _ref4 ? i < _ref4 : i > _ref4); (0 <= _ref4 ? i += 1 : i -= 1)) {
+      if (dist[i] > 9) {
+        to_fix.push(i);
+      }
+    }
+
+    for (_j = 0, _len2 = to_fix.length; _j < _len2; _j++) {
+      i = to_fix[_j];
+      m[i] = tau[i] * alpha[i] * delta[i];
+      m[i + 1] = tau[i] * beta[i] * delta[i];
+    }
+
+    this._m = m;    
+
+    this._calculated = true;
+
+//    debugger;
+
+    return 2;
+  }
+}
+
+// сплайн Катмулла-Рома, с доработкой
+// https://habr.com/ru/post/247235/comments/#comment_8879880
+class CatmullRomSpline extends Spline {
+  constructor(){
+    super();
+  }
+
+  Reset(){
+    super.Reset();
+
+    this._d = [];
+    this._a3 = [];
+    this._a2 = [];
+  }
+
+  Dump(){
+    super.Dump();
+    console.log("CatmullRomSpline: _d", this._d);
+    console.log("CatmullRomSpline: _a2", this._a2);
+    console.log("CatmullRomSpline: _a3", this._a3);
+  }
+
+  get type () { return "spline_catmullrom"; }
+
+  ApproximateLow(сx){
+    let i = this._x.length - 1, _ref = i;
+
+    for (; (_ref <= 0 ? i <= 0 : i >= 0); (_ref <= 0 ? i += 1 : i -= 1))       
+      if (this._x[i] <= сx) 
+        break;
+
+    let dx = (сx - this._x[i]) / (this._x[i+1] - this._x[i]);
+
+    let y = this._a3[i];
+    y = y * dx + this._a2[i];
+    y = y * dx + this._d[i];
+    y = y * dx + this._y[i];
+
+    return y;
+  }
+
+  CalculateCoeffs(){
+    if(this._calculated) return 1;
+
+    if(this._x.length != this._y.length){ 
+      console.error("CatmullRomSpline::CalcCoefficients(): размеры входных массивов не совпадают: _x.length: ", this._x.length, ", _y.length: ", this._y.length); 
+      return -1;
+    }
+
+    if(this.length < 3){ 
+      console.error("CatmullRomSpline::CalcCoefficients(): размеры входного массива < 3: ", this.length); 
+      return -2;
+    }
+
+    this._d[0] = 0;
+
+    for(let i = 0; i <= this.length - 2; i++){
+      // Моя доработка: в оригинальном алгоритме аппроксимация последнего 
+      // сегмента вообще не производилась, что обесценивало его для 
+      // реальных приложений
+      let yy = (i == this.length - 2) ? this._y[i+1] : this._y[i+2];
+
+      // dr
+      this._d[i+1] = (yy - this._y[i]) / 2;
+      this._a3[i] = this._d[i] + this._d[i+1] + 2 * (this._y[i] - this._y[i+1]);
+      this._a2[i] = this._y[i+1] - this._a3[i] - this._d[i] - this._y[i];
+    }
+
+    this._calculated = true;
   }
 }

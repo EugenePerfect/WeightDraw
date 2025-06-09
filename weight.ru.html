@@ -33,47 +33,62 @@
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Усреднение: <select id="mesh_selector">
-      <option>нет</option>
-      <option>3</option>
-      <option>5</option>
-      <option selected>7</option>
-      <option>9</option>
-      <option>11</option>
-      <option>13</option>
-      <option>15</option>
+      <option value="0">нет</option>
+      <option value="3">3</option>
+      <option value="5" selected>5</option>
+      <option value="7">7</option>
+      <option value="9">9</option>
+      <option value="11">11</option>
+      <option value="13">13</option>
+      <option value="15">15</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
     Аппроксимация: <select id="smoothing_selector">
-      <option selected>нет</option>
-      <option>Сплайн Akima</option>
-      <option>Кубический сплайн</option> 
+      <option selected value="spline_base">линейная</option>
+      <option value="spline_akima">Сплайн Akima</option>
+      <option value="spline_cubic">Кубический сплайн</option> 
+      <option value="spline_hermit">Сплайн Эрмита</option>
+      <option value="spline_catmullrom">Сплайн Катмулла-Рома</option>
     </select>
 
     &nbsp;&nbsp;|&nbsp;&nbsp;
 
     Метки: <select id="monthlabels_selector">
-      <option>январь</option>
-      <option selected>янв</option>
-      <option>янв 21</option>
-      <option>01/21</option>
-      <option>01</option>
+      <option value="format_month_full"          >январь</option>
+      <option value="format_month_short" selected>янв</option>
+      <option value="format_month_year"          >янв 21</option>
+      <option value="format_month_year_digit"    >01/21</option>
+      <option value="format_month_digit"         >01</option>
     </select>
   </div>
 
   <p> 
     Рисовать: <label>воскресенья <input type="checkbox" id="showsundays_selector" ></label>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>точки мин. и макс. веса <input type="checkbox" id="showminmaxdots_selector" checked></label>
+    Наименьший и наибольший вес: <select id="minmax_selector">
+      <option value="minmax_none"          >не отображать</option>
+      <option value="minmax_dots"          >точки</option>
+      <option value="minmax_lines"         >линии</option>
+      <option value="minmax_all"  selected >точки и линии</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>линии мин. и макс. веса <input type="checkbox" id="showminmaxlines_selector" checked></label>
+    Основной график: <select id="main__selector">
+      <option value="main_none"          >не отображать</option>
+      <option value="main_dots"          >точки</option>
+      <option value="main_lines"         >линии</option>
+      <option value="main_all"  selected >точки и линии</option>
+    </select>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <label>график по среднемесячным точкам <input type="checkbox" id="showmonthlygraph_selector" checked></label>
+    <label>график по среднемесячным<input type="checkbox" id="showmonthlygraph_selector" checked></label>
   </p>
 
   <canvas id="canvas2"></canvas><br>
 
-  <canvas id="canvas3"></canvas><br>
+  <br><B>Исходные данные:</B> &nbsp;<input type="button" value="Удалить всё" id="data_reset">&nbsp;&nbsp;|&nbsp;&nbsp;<input type="button" value="Загрузить пример" id="data_demo"><br><br>
+
+  <input type="date" id="data_add_date"><input type="number" id="data_add_weight" min="0" step="0.05"><input type="button" value="Добавить результат взвешивания" id="data_add">
+
 
   <script src='jquery.js'></script>
 
